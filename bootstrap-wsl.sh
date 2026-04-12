@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# bootstrap-wsl.sh
+# Sets up WSL2 side: installs AI CLI tools, links shell config from repo
+# Run directly or called by bootstrap-windows.ps1
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+echo ""
+echo "=== WSL Bootstrap ==="
+echo "Repo: $REPO_ROOT"
+echo ""
+
+# -----------------------------------------------------------------------------
+# Node.js (via nvm) — required for Claude Code, Codex, Gemini CLI
+# -----------------------------------------------------------------------------
+echo "[1/4] Node.js..."
+if ! command -v node &>/dev/null; then
+    echo "  Installing nvm..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+    export NVM_DIR="$HOME/.nvm"
+    # shellcheck disable=SC1091
+    source "$NVM_DIR/nvm.sh"
+    nvm install 22
+    nvm use 22
+    echo "  Node.js $(node --version) installed"
+else
+    echo "  Node.js $(node --version) — already installed"
+fi
+
+# -----------------------------------------------------------------------------
+# AI CLI tools
+# -----------------------------------------------------------------------------
+echo "[2/4] AI CLI tools..."
+
+install_npm_tool() {
+    local pkg=$1
+    local cmd=$2
+    if command -v "$cmd" &>/dev/null; then
+        echo "  ✓ $cmd already installed"
+    else
+        echo "  Installing $pkg..."
+        npm install -g "$pkg"
+        echo "  ✓ $cmd installed"
+    fi
+}
+
+install_npm_tool "@anthropic-ai/claude-code" "claude"
+install_npm_tool "@openai/codex"             "codex"
+install_npm_tool "@google/gemini-cli"        "gemini"
+
+# -----------------------------------------------------------------------------
+# Shell config — link .bashrc additions from repo
+# -----------------------------------------------------------------------------
+echo "[3/4] Shell config..."
+
+SHELL_ADDITIONS="$REPO_ROOT/shell/wsl-additions.sh"
+MARKER="# === terminal-config repo additions ==="
+
+if ! grep -q "$MARKER" "$HOME/.bashrc" 2>/dev/null; then
+    echo "" >> "$HOME/.bashrc"
+    echo "$MARKER" >> "$HOME/.bashrc"
+    echo "source \"$SHELL_ADDITIONS\"" >> "$HOME/.bashrc"
+    echo "  Linked shell additions to .bashrc"
+else
+    echo "  Shell additions already linked"
+fi
+
+# -----------------------------------------------------------------------------
+# API keys reminder
+# -----------------------------------------------------------------------------
+echo "[4/4] API keys..."
+
+KEYS_FILE="$HOME/.config/ai-keys.sh"
+if [ ! -f "$KEYS_FILE" ]; then
+    mkdir -p "$(dirname "$KEYS_FILE")"
+    cat > "$KEYS_FILE" << 'EOF'
+# AI API Keys — do NOT commit this file
+# Source this from your .bashrc or wsl-additions.sh
+
+# Perplexity (get from: https://www.perplexity.ai/settings/api)
+# export PERPLEXITY_API_KEY="pplx-..."
+
+# Google AI Studio (for Gemini CLI with API key auth)
+# export GOOGLE_API_KEY="..."
+
+# OpenAI (if using API key instead of ChatGPT account)
+# export OPENAI_API_KEY="sk-..."
+EOF
+    echo "  Created $KEYS_FILE — fill in your API keys"
+    echo "  This file is gitignored and will not be committed"
+else
+    echo "  API keys file already exists"
+fi
+
+echo ""
+echo "=== WSL Bootstrap complete ==="
+echo ""
+echo "  Restart your WSL shell or run: source ~/.bashrc"
+echo "  Then: claude, codex, gemini — all available"
+echo ""
