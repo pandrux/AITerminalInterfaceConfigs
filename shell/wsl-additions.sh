@@ -14,6 +14,9 @@ AI_KEYS="$HOME/.config/ai-keys.sh"
 # -----------------------------------------------------------------------------
 export PATH="$HOME/.local/bin:$PATH"
 
+# Default browser — open OAuth flows and links in Windows Chrome
+export BROWSER="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
+
 # nvm (Node Version Manager)
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
