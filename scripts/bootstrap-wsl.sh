@@ -65,6 +65,14 @@ else
     echo "  ✓ LibreOffice installed"
 fi
 
+if python3 -c "import pptx" &>/dev/null 2>&1; then
+    echo "  ✓ python-pptx already installed"
+else
+    echo "  Installing python-pptx..."
+    pip3 install --user python-pptx
+    echo "  ✓ python-pptx installed"
+fi
+
 # -----------------------------------------------------------------------------
 # Node.js (via nvm) — required for Claude Code, Codex, Gemini CLI
 # -----------------------------------------------------------------------------
