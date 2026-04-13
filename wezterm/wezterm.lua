@@ -5,7 +5,7 @@ local config = wezterm.config_builder()
 -- =============================================================================
 -- wezterm.lua — Tom's AI Workbench Terminal Config
 -- =============================================================================
--- Repo: github.com/YOUR_USERNAME/terminal-config
+-- Repo: github.com/pandrux/AITerminalInterfaceConfigs
 --
 -- LEADER KEY : CTRL+SPACE  (WezTerm layer)
 -- TMUX PREFIX: CTRL+A      (tmux layer inside WSL2 — no conflict)
