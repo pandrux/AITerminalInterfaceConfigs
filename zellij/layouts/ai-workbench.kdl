@@ -1,0 +1,32 @@
+// ai-workbench.kdl — 4-pane AI CLI layout for Zellij
+//
+// ┌─ Claude ───────────┬─ Codex ────────────┐
+// │                     │                    │
+// │  claude             │  codex             │
+// │                     │                    │
+// ├─ Gemini ───────────┼─ Scratch ──────────┤
+// │                     │                    │
+// │  gemini             │  bash              │
+// │                     │                    │
+// └─────────────────────┴────────────────────┘
+//
+// Launch: zellij --layout ai-workbench
+
+layout {
+    cwd "/mnt/d/AI"
+    pane split_direction="vertical" size="50%" {
+        pane name="Claude" command="bash" {
+            args "-lc" "claude"
+            focus true
+        }
+        pane name="Gemini" command="bash" {
+            args "-lc" "gemini"
+        }
+    }
+    pane split_direction="vertical" size="50%" {
+        pane name="Codex" command="bash" {
+            args "-lc" "codex"
+        }
+        pane name="Scratch"
+    }
+}

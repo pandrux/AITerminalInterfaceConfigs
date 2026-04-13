@@ -13,9 +13,30 @@ echo "Repo: $REPO_ROOT"
 echo ""
 
 # -----------------------------------------------------------------------------
+# System packages — Zellij (terminal multiplexer) + bubblewrap (Codex sandbox)
+# -----------------------------------------------------------------------------
+echo "[1/6] System packages..."
+
+if command -v zellij &>/dev/null; then
+    echo "  ✓ Zellij already installed"
+else
+    echo "  Installing Zellij via snap..."
+    sudo snap install zellij --classic
+    echo "  ✓ Zellij installed"
+fi
+
+if dpkg -s bubblewrap &>/dev/null 2>&1; then
+    echo "  ✓ bubblewrap already installed"
+else
+    echo "  Installing bubblewrap..."
+    sudo apt-get install -y bubblewrap
+    echo "  ✓ bubblewrap installed"
+fi
+
+# -----------------------------------------------------------------------------
 # Node.js (via nvm) — required for Claude Code, Codex, Gemini CLI
 # -----------------------------------------------------------------------------
-echo "[1/4] Node.js..."
+echo "[2/6] Node.js..."
 if ! command -v node &>/dev/null; then
     echo "  Installing nvm..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
@@ -32,7 +53,7 @@ fi
 # -----------------------------------------------------------------------------
 # AI CLI tools
 # -----------------------------------------------------------------------------
-echo "[2/4] AI CLI tools..."
+echo "[3/6] AI CLI tools..."
 
 install_npm_tool() {
     local pkg=$1
@@ -53,7 +74,7 @@ install_npm_tool "@google/gemini-cli"        "gemini"
 # -----------------------------------------------------------------------------
 # Shell config — link .bashrc additions from repo
 # -----------------------------------------------------------------------------
-echo "[3/4] Shell config..."
+echo "[4/6] Shell config..."
 
 SHELL_ADDITIONS="$REPO_ROOT/shell/wsl-additions.sh"
 MARKER="# === terminal-config repo additions ==="
@@ -68,9 +89,28 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# Zellij layouts — link from repo into Zellij config
+# -----------------------------------------------------------------------------
+echo "[5/6] Zellij layouts..."
+
+ZELLIJ_LAYOUT_DIR="$HOME/.config/zellij/layouts"
+mkdir -p "$ZELLIJ_LAYOUT_DIR"
+
+for layout in "$REPO_ROOT"/zellij/layouts/*.kdl; do
+    [ -f "$layout" ] || continue
+    dest="$ZELLIJ_LAYOUT_DIR/$(basename "$layout")"
+    if [ -L "$dest" ] || [ -f "$dest" ]; then
+        echo "  $(basename "$layout") already linked"
+    else
+        ln -s "$layout" "$dest"
+        echo "  Linked $(basename "$layout")"
+    fi
+done
+
+# -----------------------------------------------------------------------------
 # API keys reminder
 # -----------------------------------------------------------------------------
-echo "[4/4] API keys..."
+echo "[6/6] API keys..."
 
 KEYS_FILE="$HOME/.config/ai-keys.sh"
 if [ ! -f "$KEYS_FILE" ]; then
@@ -99,4 +139,5 @@ echo "=== WSL Bootstrap complete ==="
 echo ""
 echo "  Restart your WSL shell or run: source ~/.bashrc"
 echo "  Then: claude, codex, gemini — all available"
+echo "  Type 'ai' to launch the AI workbench in Zellij"
 echo ""
