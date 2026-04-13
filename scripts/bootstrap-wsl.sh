@@ -81,7 +81,7 @@ if [ -d "$AI_VENV" ] && "$AI_VENV/bin/python3" -c "import pptx" &>/dev/null 2>&1
     echo "  ✓ Python venv + python-pptx already installed"
 else
     echo "  Setting up Python venv with python-pptx..."
-    sudo apt-get install -y python3-venv -qq
+    sudo apt-get install -y python3-venv python3.12-venv -qq
     python3 -m venv "$AI_VENV"
     "$AI_VENV/bin/pip" install python-pptx
     echo "  ✓ python-pptx installed in $AI_VENV"
