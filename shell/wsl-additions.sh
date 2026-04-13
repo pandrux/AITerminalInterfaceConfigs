@@ -96,6 +96,16 @@ alias possum='cd ~/projects/possum && echo "→ possum"'
 # Pretty-print JSON logs (useful for PTC/ATCS log analysis)
 alias jlog='python3 -m json.tool'
 
+# Document conversion shortcuts
+# Usage: to-docx report.md    → report.docx
+#        to-pdf  report.md    → report.pdf
+#        to-pptx slides.md    → slides.pptx
+#        to-html report.md    → report.html
+to-docx() { pandoc "$1" -o "${1%.*}.docx"; echo "→ ${1%.*}.docx"; }
+to-pdf()  { pandoc "$1" -o "${1%.*}.pdf";  echo "→ ${1%.*}.pdf"; }
+to-pptx() { pandoc "$1" -o "${1%.*}.pptx"; echo "→ ${1%.*}.pptx"; }
+to-html() { pandoc "$1" -o "${1%.*}.html"; echo "→ ${1%.*}.html"; }
+
 # Tail a log and pipe it to Claude for live analysis
 # Usage: watch-log /path/to/app.log "explain any errors you see"
 watch-log() {

@@ -41,6 +41,30 @@ else
     echo "  ✓ Starship installed"
 fi
 
+if command -v pandoc &>/dev/null; then
+    echo "  ✓ Pandoc already installed"
+else
+    echo "  Installing Pandoc..."
+    sudo apt-get install -y pandoc
+    echo "  ✓ Pandoc installed"
+fi
+
+if dpkg -s texlive-latex-recommended &>/dev/null 2>&1; then
+    echo "  ✓ texlive-latex-recommended already installed"
+else
+    echo "  Installing texlive (for PDF generation via Pandoc)..."
+    sudo apt-get install -y texlive-latex-recommended
+    echo "  ✓ texlive installed"
+fi
+
+if command -v libreoffice &>/dev/null; then
+    echo "  ✓ LibreOffice already installed"
+else
+    echo "  Installing LibreOffice CLI..."
+    sudo apt-get install -y libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress --no-install-recommends
+    echo "  ✓ LibreOffice installed"
+fi
+
 # -----------------------------------------------------------------------------
 # Node.js (via nvm) — required for Claude Code, Codex, Gemini CLI
 # -----------------------------------------------------------------------------
