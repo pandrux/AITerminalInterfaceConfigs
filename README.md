@@ -149,13 +149,18 @@ AITerminalInterfaceConfigs/
 |   +-- wezterm.lua              # Main WezTerm config
 +-- shell/
 |   +-- wsl-additions.sh         # Sourced by .bashrc
+|   +-- starship.toml            # Starship prompt config
 +-- scripts/
 |   +-- bootstrap-windows.ps1    # Windows setup
 |   +-- bootstrap-wsl.sh         # WSL setup
 |   +-- ai.sh                    # AI workbench launcher
+|   +-- update.sh                # Update all tools
 +-- zellij/
+|   +-- config.kdl               # Zellij base config (theme, defaults)
 |   +-- layouts/
 |       +-- ai-workbench.kdl     # 4-pane AI layout
++-- skills/                      # Custom skills (future)
++-- .gitattributes
 +-- .gitignore
 +-- README.md
 ```
