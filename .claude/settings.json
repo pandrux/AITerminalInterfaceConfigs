@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch",
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(chmod *)",
+      "Bash(cd *)",
+      "Bash(find *)",
+      "Bash(npm *)",
+      "Bash(node *)",
+      "Bash(pip3 *)",
+      "Bash(python3 *)",
+      "Bash(dotnet *)",
+      "Bash(pandoc *)",
+      "Bash(libreoffice *)",
+      "Bash(zellij *)",
+      "Bash(starship *)",
+      "Bash(source *)",
+      "Bash(curl *)",
+      "Bash(snap *)",
+      "Bash(sudo apt*)",
+      "Bash(echo *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(sort *)",
+      "Bash(grep *)",
+      "Bash(diff *)",
+      "Bash(gh *)"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(rm)",
+      "Bash(rmdir *)",
+      "Bash(del *)"
+    ]
+  }
+}
