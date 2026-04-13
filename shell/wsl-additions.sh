@@ -16,7 +16,7 @@ AI_KEYS="$HOME/.config/ai-keys.sh"
 # -----------------------------------------------------------------------------
 # PATH additions
 # -----------------------------------------------------------------------------
-export PATH="$HOME/.local/bin:/snap/bin:$PATH"
+export PATH="$HOME/.local/share/ai-venv/bin:$HOME/.local/bin:/snap/bin:$PATH"
 
 # Default browser — open OAuth flows and links in Windows Chrome
 export BROWSER="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"

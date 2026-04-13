@@ -76,12 +76,15 @@ else
     echo "  ✓ LibreOffice installed"
 fi
 
-if python3 -c "import pptx" &>/dev/null 2>&1; then
-    echo "  ✓ python-pptx already installed"
+AI_VENV="$HOME/.local/share/ai-venv"
+if [ -d "$AI_VENV" ] && "$AI_VENV/bin/python3" -c "import pptx" &>/dev/null 2>&1; then
+    echo "  ✓ Python venv + python-pptx already installed"
 else
-    echo "  Installing python-pptx..."
-    pip3 install --user python-pptx
-    echo "  ✓ python-pptx installed"
+    echo "  Setting up Python venv with python-pptx..."
+    sudo apt-get install -y python3-venv -qq
+    python3 -m venv "$AI_VENV"
+    "$AI_VENV/bin/pip" install python-pptx
+    echo "  ✓ python-pptx installed in $AI_VENV"
 fi
 
 # -----------------------------------------------------------------------------
