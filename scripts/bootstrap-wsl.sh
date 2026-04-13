@@ -33,6 +33,14 @@ else
     echo "  ✓ bubblewrap installed"
 fi
 
+if command -v starship &>/dev/null; then
+    echo "  ✓ Starship already installed"
+else
+    echo "  Installing Starship prompt..."
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
+    echo "  ✓ Starship installed"
+fi
+
 # -----------------------------------------------------------------------------
 # Node.js (via nvm) — required for Claude Code, Codex, Gemini CLI
 # -----------------------------------------------------------------------------

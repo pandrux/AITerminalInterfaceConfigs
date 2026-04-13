@@ -3,6 +3,10 @@
 # Keep this clean: aliases, functions, and environment only.
 # Machine-specific overrides go in ~/.config/local-overrides.sh (gitignored)
 
+# Resolve repo root from this script's location
+_WSL_ADDITIONS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_REPO_ROOT="$(cd "$_WSL_ADDITIONS_DIR/.." && pwd)"
+
 # -----------------------------------------------------------------------------
 # API Keys (sourced from a gitignored file)
 # -----------------------------------------------------------------------------
@@ -107,3 +111,11 @@ watch-log() {
 # -----------------------------------------------------------------------------
 LOCAL_OVERRIDES="$HOME/.config/local-overrides.sh"
 [ -f "$LOCAL_OVERRIDES" ] && source "$LOCAL_OVERRIDES"
+
+# -----------------------------------------------------------------------------
+# Starship prompt (must be last — replaces PS1)
+# -----------------------------------------------------------------------------
+if command -v starship &>/dev/null; then
+    export STARSHIP_CONFIG="$_REPO_ROOT/shell/starship.toml"
+    eval "$(starship init bash)"
+fi
