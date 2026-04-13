@@ -81,6 +81,7 @@ alias sync-off='tmux set-window-option synchronize-panes off && echo "Pane sync 
 # AI Workbench launcher
 # -----------------------------------------------------------------------------
 alias ai='zellij --layout ai-workbench'
+alias update-ai='bash "$_REPO_ROOT/scripts/update.sh"'
 
 # -----------------------------------------------------------------------------
 # General productivity
