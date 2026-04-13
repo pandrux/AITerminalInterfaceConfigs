@@ -89,12 +89,22 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Zellij layouts — link from repo into Zellij config
+# Zellij config + layouts — link from repo into Zellij config
 # -----------------------------------------------------------------------------
-echo "[5/6] Zellij layouts..."
+echo "[5/6] Zellij config + layouts..."
 
-ZELLIJ_LAYOUT_DIR="$HOME/.config/zellij/layouts"
+ZELLIJ_CONFIG_DIR="$HOME/.config/zellij"
+ZELLIJ_LAYOUT_DIR="$ZELLIJ_CONFIG_DIR/layouts"
 mkdir -p "$ZELLIJ_LAYOUT_DIR"
+
+# Link base config
+ZELLIJ_CONFIG="$ZELLIJ_CONFIG_DIR/config.kdl"
+if [ -L "$ZELLIJ_CONFIG" ] || [ -f "$ZELLIJ_CONFIG" ]; then
+    echo "  config.kdl already linked"
+else
+    ln -s "$REPO_ROOT/zellij/config.kdl" "$ZELLIJ_CONFIG"
+    echo "  Linked config.kdl"
+fi
 
 for layout in "$REPO_ROOT"/zellij/layouts/*.kdl; do
     [ -f "$layout" ] || continue

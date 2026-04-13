@@ -1,0 +1,17 @@
+// config.kdl — Zellij base configuration
+// Repo: github.com/pandrux/AITerminalInterfaceConfigs
+
+// Theme — Everforest Dark (built-in)
+theme "everforest-dark"
+
+// Default shell
+default_shell "bash"
+
+// Scrollback
+scroll_buffer_size 10000
+
+// Copy to system clipboard
+copy_on_select true
+
+// Disable session resurrection prompt on exit
+session_serialization false
