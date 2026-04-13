@@ -112,8 +112,10 @@ echo "[3/6] AI CLI tools..."
 install_npm_tool() {
     local pkg=$1
     local cmd=$2
-    if command -v "$cmd" &>/dev/null; then
-        echo "  ✓ $cmd already installed"
+    # Check nvm's bin specifically — Windows PATH can shadow missing Linux installs
+    local nvm_bin="$HOME/.nvm/versions/node/$(node --version)/bin"
+    if [ -x "$nvm_bin/$cmd" ]; then
+        echo "  ✓ $cmd already installed (Linux)"
     else
         echo "  Installing $pkg..."
         npm install -g "$pkg"
