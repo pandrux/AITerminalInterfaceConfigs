@@ -13,9 +13,20 @@ echo "Repo: $REPO_ROOT"
 echo ""
 
 # -----------------------------------------------------------------------------
-# System packages — Zellij (terminal multiplexer) + bubblewrap (Codex sandbox)
+# System packages
 # -----------------------------------------------------------------------------
 echo "[1/6] System packages..."
+
+# Ensure apt cache is fresh
+sudo apt-get update -qq
+
+if command -v pip3 &>/dev/null; then
+    echo "  ✓ pip3 already installed"
+else
+    echo "  Installing pip3..."
+    sudo apt-get install -y python3-pip
+    echo "  ✓ pip3 installed"
+fi
 
 if command -v zellij &>/dev/null; then
     echo "  ✓ Zellij already installed"
