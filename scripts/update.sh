@@ -55,14 +55,43 @@ echo ""
 # -----------------------------------------------------------------------------
 # Update Zellij
 # -----------------------------------------------------------------------------
-echo "[4/4] Updating Zellij..."
+echo "[4/5] Updating Zellij..."
 if command -v zellij &>/dev/null; then
     sudo snap refresh zellij
     echo "  ✓ Zellij updated"
 else
     echo "  ✗ Zellij not installed — skipping"
 fi
+echo ""
+
+# -----------------------------------------------------------------------------
+# Re-sync Zellij config + layout symlinks (picks up newly added layouts)
+# -----------------------------------------------------------------------------
+echo "[5/5] Re-syncing Zellij symlinks..."
+
+ZELLIJ_CONFIG_DIR="$HOME/.config/zellij"
+ZELLIJ_LAYOUT_DIR="$ZELLIJ_CONFIG_DIR/layouts"
+mkdir -p "$ZELLIJ_LAYOUT_DIR"
+
+relink() {
+    local src=$1
+    local dest=$2
+    if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+        echo "  ⚠ $dest is a real file, not a symlink — leaving alone"
+        return
+    fi
+    ln -sfn "$src" "$dest"
+    echo "  ✓ $(basename "$dest")"
+}
+
+relink "$REPO_ROOT/zellij/config.kdl" "$ZELLIJ_CONFIG_DIR/config.kdl"
+
+for layout in "$REPO_ROOT"/zellij/layouts/*.kdl; do
+    [ -f "$layout" ] || continue
+    relink "$layout" "$ZELLIJ_LAYOUT_DIR/$(basename "$layout")"
+done
 
 echo ""
 echo "=== Update complete ==="
+echo "  (Restart any running Zellij sessions to pick up config changes)"
 echo ""
