@@ -12,6 +12,13 @@ echo "=== WSL Bootstrap ==="
 echo "Repo: $REPO_ROOT"
 echo ""
 
+# Mark repo as safe for git — required when the repo lives on a Windows mount
+# (/mnt/c, /mnt/d, ...) because the NTFS owner UID doesn't match the WSL user.
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "$REPO_ROOT"; then
+    git config --global --add safe.directory "$REPO_ROOT"
+    echo "  Added $REPO_ROOT to git safe.directory"
+fi
+
 # -----------------------------------------------------------------------------
 # System packages
 # -----------------------------------------------------------------------------
