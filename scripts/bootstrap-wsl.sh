@@ -176,7 +176,7 @@ done
 # -----------------------------------------------------------------------------
 # API keys reminder
 # -----------------------------------------------------------------------------
-echo "[6/6] API keys..."
+echo "[6/7] API keys..."
 
 KEYS_FILE="$HOME/.config/ai-keys.sh"
 if [ ! -f "$KEYS_FILE" ]; then
@@ -198,6 +198,43 @@ EOF
     echo "  This file is gitignored and will not be committed"
 else
     echo "  API keys file already exists"
+fi
+
+# -----------------------------------------------------------------------------
+# Claude Code statusline + settings
+# -----------------------------------------------------------------------------
+echo "[7/7] Claude Code statusline..."
+
+CLAUDE_DIR="$HOME/.claude"
+mkdir -p "$CLAUDE_DIR"
+STATUSLINE_TARGET="$CLAUDE_DIR/statusline.py"
+STATUSLINE_SOURCE="$REPO_ROOT/claude/statusline.py"
+
+if [ -L "$STATUSLINE_TARGET" ] || [ -f "$STATUSLINE_TARGET" ]; then
+    if [ ! -L "$STATUSLINE_TARGET" ]; then
+        mv "$STATUSLINE_TARGET" "$STATUSLINE_TARGET.bak-$(date +%Y%m%d-%H%M)"
+        ln -s "$STATUSLINE_SOURCE" "$STATUSLINE_TARGET"
+        echo "  Backed up existing statusline.py and linked repo version"
+    else
+        echo "  statusline.py already linked"
+    fi
+else
+    ln -s "$STATUSLINE_SOURCE" "$STATUSLINE_TARGET"
+    echo "  Linked $STATUSLINE_TARGET -> $STATUSLINE_SOURCE"
+fi
+
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+PY_BIN="$(command -v python3 || command -v python || echo python3)"
+STATUSLINE_CMD="$PY_BIN $STATUSLINE_TARGET"
+
+if command -v jq &>/dev/null; then
+    if [ ! -f "$SETTINGS_FILE" ]; then echo '{}' > "$SETTINGS_FILE"; fi
+    tmp="$(mktemp)"
+    jq --arg cmd "$STATUSLINE_CMD" '.statusLine = {type:"command", command:$cmd}' "$SETTINGS_FILE" > "$tmp" && mv "$tmp" "$SETTINGS_FILE"
+    echo "  Registered statusLine in $SETTINGS_FILE"
+else
+    echo "  (jq not installed — skipping settings.json patch; add manually:)"
+    echo "    \"statusLine\": {\"type\":\"command\",\"command\":\"$STATUSLINE_CMD\"}"
 fi
 
 echo ""

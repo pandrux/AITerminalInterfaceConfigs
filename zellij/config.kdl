@@ -15,3 +15,12 @@ copy_on_select true
 
 // Disable session resurrection prompt on exit
 session_serialization false
+
+// Keybindings — direct chord for sync-all-panes (broadcast mode)
+// F9 toggles: when on, keystrokes go to every pane in the tab.
+// F-keys are not intercepted by TUI apps like Claude/Codex/Gemini.
+keybinds {
+    shared_except "locked" {
+        bind "F9" { ToggleActiveSyncTab; }
+    }
+}

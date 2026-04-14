@@ -159,6 +159,8 @@ AITerminalInterfaceConfigs/
 |   +-- config.kdl               # Zellij base config (theme, defaults)
 |   +-- layouts/
 |       +-- ai-workbench.kdl     # 4-pane AI layout
++-- claude/
+|   +-- statusline.py            # Claude Code statusline (symlinked into ~/.claude/)
 +-- skills/                      # Custom skills (future)
 +-- .gitattributes
 +-- .gitignore

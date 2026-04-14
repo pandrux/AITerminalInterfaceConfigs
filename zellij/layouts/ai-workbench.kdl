@@ -1,32 +1,38 @@
-// ai-workbench.kdl — 4-pane AI CLI layout for Zellij
+// ai-workbench.kdl — Two-tab AI CLI layout for Zellij
 //
-// ┌─ Claude ───────────┬─ Codex ────────────┐
-// │                     │                    │
-// │  claude             │  codex             │
-// │                     │                    │
-// ├─ Gemini ───────────┼─ Scratch ──────────┤
-// │                     │                    │
-// │  gemini             │  bash              │
-// │                     │                    │
-// └─────────────────────┴────────────────────┘
+// Tab 1 "AI" — three AI CLIs, side by side. F9 sync broadcasts here.
+// ┌─ Claude ───┬─ Codex ────┬─ Gemini ───┐
+// │            │            │            │
+// │  claude    │  codex     │  gemini    │
+// │            │            │            │
+// └────────────┴────────────┴────────────┘
+//
+// Tab 2 "Scratch" — isolated shell. Not affected by F9 sync.
+// ┌─ bash ──────────────────────────────┐
+// │                                     │
+// └─────────────────────────────────────┘
 //
 // Launch: zellij --layout ai-workbench
+// Toggle broadcast: F9 (only syncs panes in the current tab)
+// Switch tabs: Ctrl+T then n/p (next/prev) or 1/2
 
 layout {
     cwd "/mnt/d/AI"
-    pane split_direction="vertical" size="50%" {
-        pane name="Claude" command="bash" {
-            args "-lc" "claude"
-            focus true
-        }
-        pane name="Gemini" command="bash" {
-            args "-lc" "gemini"
+    tab name="AI" focus=true {
+        pane split_direction="vertical" {
+            pane name="Claude" command="bash" {
+                args "-lc" "claude"
+                focus true
+            }
+            pane name="Codex" command="bash" {
+                args "-lc" "codex"
+            }
+            pane name="Gemini" command="bash" {
+                args "-lc" "gemini"
+            }
         }
     }
-    pane split_direction="vertical" size="50%" {
-        pane name="Codex" command="bash" {
-            args "-lc" "codex"
-        }
+    tab name="Scratch" {
         pane name="Scratch"
     }
 }
