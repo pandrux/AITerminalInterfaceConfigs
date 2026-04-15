@@ -110,14 +110,41 @@ if (Test-Path $SettingsFile) {
 }
 if (-not $settings) { $settings = New-Object PSObject }
 
-$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
-if ($pythonCmd) { $pythonPath = $pythonCmd.Source } else { $pythonPath = "python" }
-$statuslineCmd = "`"$($pythonPath.Replace('\', '/'))`" `"$($StatuslineTarget.Replace('\', '/'))`""
-$statusLineObj = New-Object PSObject -Property @{ type = "command"; command = $statuslineCmd }
-$settings | Add-Member -NotePropertyName "statusLine" -NotePropertyValue $statusLineObj -Force
+# Find a real Python — skip the Windows Store App Execution Alias stub
+# ($env:LOCALAPPDATA\Microsoft\WindowsApps\python.exe prints an install prompt
+# and exits 49, which silently breaks statusline.)
+$pythonPath = $null
+$candidates = @(
+    "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+    "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+    "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+    "$env:ProgramFiles\Python313\python.exe",
+    "$env:ProgramFiles\Python312\python.exe",
+    "$env:ProgramFiles\Python311\python.exe"
+)
+foreach ($c in $candidates) {
+    if (Test-Path $c) { $pythonPath = $c; break }
+}
+if (-not $pythonPath) {
+    $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+    if ($pythonCmd -and $pythonCmd.Source -notmatch 'WindowsApps\\python\.exe$') {
+        $pythonPath = $pythonCmd.Source
+    }
+}
+$skipStatusLineRegistration = $false
+if (-not $pythonPath) {
+    Write-Host "  WARN: No real Python found. Install with: winget install Python.Python.3.13" -ForegroundColor Yellow
+    Write-Host "  WARN: Skipping statusLine registration." -ForegroundColor Yellow
+    $skipStatusLineRegistration = $true
+}
+if (-not $skipStatusLineRegistration) {
+    $statuslineCmd = "`"$($pythonPath.Replace('\', '/'))`" `"$($StatuslineTarget.Replace('\', '/'))`""
+    $statusLineObj = New-Object PSObject -Property @{ type = "command"; command = $statuslineCmd }
+    $settings | Add-Member -NotePropertyName "statusLine" -NotePropertyValue $statusLineObj -Force
 
-$settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
-Write-Host "  Registered statusLine in $SettingsFile" -ForegroundColor Green
+    $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
+    Write-Host "  Registered statusLine: $pythonPath" -ForegroundColor Green
+}
 
 # -----------------------------------------------------------------------------
 # 5. WSL bootstrap (optional)
