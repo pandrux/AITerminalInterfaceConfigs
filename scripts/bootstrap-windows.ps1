@@ -68,13 +68,29 @@ $tools = @(
     @{ Name = "Codex CLI";   Cmd = "codex";   Install = "npm install -g @openai/codex" },
     @{ Name = "Gemini CLI";  Cmd = "gemini";  Install = "npm install -g @google/gemini-cli" },
     @{ Name = "Node.js";     Cmd = "node";    Install = "winget install OpenJS.NodeJS.LTS" },
-    @{ Name = "Git";         Cmd = "git";     Install = "winget install Git.Git" }
+    @{ Name = "Git";         Cmd = "git";     Install = "winget install Git.Git" },
+    @{ Name = "Python 3.13"; Cmd = "python";  Install = "winget install Python.Python.3.13" },
+    @{ Name = "Cursor IDE";  Cmd = "cursor";  Install = "winget install Anysphere.Cursor" }
 )
+
+$autoInstall = @("Cursor IDE")  # tools we auto-install via winget if missing
 
 foreach ($tool in $tools) {
     $found = Get-Command $tool.Cmd -ErrorAction SilentlyContinue
+    # Windows Store App Execution Alias stubs look "found" but aren't real
+    if ($found -and $found.Source -match 'WindowsApps\\.*\.exe$') { $found = $null }
+
     if ($found) {
         Write-Host "  [OK] $($tool.Name)" -ForegroundColor Green
+    } elseif ($autoInstall -contains $tool.Name -and $tool.Install -match '^winget install (.+)$') {
+        $wingetId = $Matches[1]
+        Write-Host "  [AUTO] Installing $($tool.Name) via winget ($wingetId)..." -ForegroundColor Yellow
+        winget install --id $wingetId --silent --accept-source-agreements --accept-package-agreements
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  [OK] $($tool.Name) installed" -ForegroundColor Green
+        } else {
+            Write-Host "  [FAIL] $($tool.Name) install returned $LASTEXITCODE" -ForegroundColor Red
+        }
     } else {
         Write-Host "  [MISSING] $($tool.Name) -- Install: $($tool.Install)" -ForegroundColor Red
     }
