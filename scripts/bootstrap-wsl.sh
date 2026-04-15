@@ -67,6 +67,14 @@ else
     echo "  ✓ Pandoc installed"
 fi
 
+if command -v jq &>/dev/null; then
+    echo "  ✓ jq already installed"
+else
+    echo "  Installing jq..."
+    sudo apt-get install -y jq
+    echo "  ✓ jq installed"
+fi
+
 if dpkg -s texlive-latex-recommended &>/dev/null 2>&1; then
     echo "  ✓ texlive-latex-recommended already installed"
 else
@@ -231,7 +239,13 @@ else
 fi
 
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-PY_BIN="$(command -v python3 || command -v python || echo python3)"
+# Prefer /usr/bin/python3 over anything `command -v` finds — the ai-venv
+# pptx environment may be on PATH and we don't want statusline tied to it.
+if [ -x /usr/bin/python3 ]; then
+    PY_BIN="/usr/bin/python3"
+else
+    PY_BIN="$(command -v python3 || command -v python || echo python3)"
+fi
 STATUSLINE_CMD="$PY_BIN $STATUSLINE_TARGET"
 
 if command -v jq &>/dev/null; then
