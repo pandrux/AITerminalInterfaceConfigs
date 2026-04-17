@@ -82,7 +82,6 @@ config.scrollback_lines = 10000
 -- =============================================================================
 config.audible_bell = 'Disabled'
 config.check_for_updates = false
-config.copy_on_select = true
 
 -- =============================================================================
 -- RIGHT STATUS — workspace name + pane count
