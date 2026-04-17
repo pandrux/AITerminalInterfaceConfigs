@@ -25,7 +25,7 @@ Write-Host ""
 # -----------------------------------------------------------------------------
 # 1. WezTerm config
 # -----------------------------------------------------------------------------
-Write-Host "[1/4] WezTerm config..." -ForegroundColor Yellow
+Write-Host "[1/5] WezTerm config..." -ForegroundColor Yellow
 
 $WeztermConfigDir = "$env:USERPROFILE\.config\wezterm"
 $WeztermConfigFile = "$WeztermConfigDir\wezterm.lua"
@@ -49,7 +49,7 @@ Write-Host "  Linked: $WeztermConfigFile -> $SourceConfig" -ForegroundColor Gree
 # -----------------------------------------------------------------------------
 # 2. Check WezTerm is installed
 # -----------------------------------------------------------------------------
-Write-Host "[2/4] Checking WezTerm..." -ForegroundColor Yellow
+Write-Host "[2/5] Checking WezTerm..." -ForegroundColor Yellow
 $wezterm = Get-Command wezterm -ErrorAction SilentlyContinue
 if ($wezterm) {
     Write-Host "  WezTerm found: $($wezterm.Source)" -ForegroundColor Green
@@ -61,7 +61,7 @@ if ($wezterm) {
 # -----------------------------------------------------------------------------
 # 3. Check Windows-side AI CLI tools
 # -----------------------------------------------------------------------------
-Write-Host "[3/4] Checking CLI tools..." -ForegroundColor Yellow
+Write-Host "[3/5] Checking CLI tools..." -ForegroundColor Yellow
 
 $tools = @(
     @{ Name = "Claude Code"; Cmd = "claude";  Install = "npm install -g @anthropic-ai/claude-code" },
@@ -171,7 +171,13 @@ if (-not $SkipWSL) {
 
     $wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
     if ($wslAvailable) {
-        wsl -d $WSLDistro -- bash -l "$($wslScript.Replace('\', '/').Replace('C:', '/mnt/c'))"
+        # Convert any Windows drive letter (C:, D:, E:, ...) to /mnt/<lower>
+        if ($wslScript -match '^([A-Za-z]):(.*)$') {
+            $wslPath = "/mnt/$($Matches[1].ToLower())$($Matches[2] -replace '\\', '/')"
+        } else {
+            $wslPath = $wslScript -replace '\\', '/'
+        }
+        wsl -d $WSLDistro -- bash -l "$wslPath"
     } else {
         Write-Host "  WSL not available. Skipping." -ForegroundColor DarkGray
     }
