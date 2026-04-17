@@ -78,18 +78,24 @@ Ideal for RDP sessions that stay alive.
 
 ### WSL side (`bootstrap-wsl.sh`)
 
-1. **Zellij** (terminal multiplexer via snap) + **bubblewrap** (Codex sandbox)
+1. **System packages**: pip3, Zellij (snap), bubblewrap (Codex sandbox),
+   Starship, Pandoc, texlive, LibreOffice, Python venv with `python-pptx`
 2. **Node.js** v22 (via nvm)
-3. **AI CLI tools**: Claude Code, Codex CLI, Gemini CLI
+3. **AI CLI tools**: Claude Code, Codex CLI, Gemini CLI (npm, global)
 4. **Shell config**: links `wsl-additions.sh` into `.bashrc`
-5. **Zellij layouts**: symlinks layout files into `~/.config/zellij/layouts/`
-6. **API keys template**: creates `~/.config/ai-keys.sh`
+5. **Zellij config + layouts**: symlinks `config.kdl` and layouts into `~/.config/zellij/`
+6. **API keys template**: creates `~/.config/ai-keys.sh` (gitignored)
+7. **Claude Code statusline**: symlinks `claude/statusline.py` into `~/.claude/`
+   and registers it in `~/.claude/settings.json`
 
 ### Windows side (`bootstrap-windows.ps1`)
 
 1. Symlinks `wezterm.lua` into WezTerm config location
-2. Checks for WezTerm, Node.js, Git, AI CLI tools
-3. Optionally triggers WSL bootstrap
+2. Checks for WezTerm
+3. Checks for CLI tools: Claude Code, Codex CLI, Gemini CLI, Node.js, Git
+4. Symlinks `claude/statusline.py` into `~/.claude/` and registers it in
+   `~/.claude/settings.json`
+5. Optionally triggers WSL bootstrap (pass `-SkipWSL` to skip)
 
 ## Key Bindings
 
@@ -146,7 +152,7 @@ broadcast-ai "analyze this stack trace"
 ```
 AITerminalInterfaceConfigs/
 +-- wezterm/
-|   +-- wezterm.lua              # Main WezTerm config
+|   +-- wezterm.lua              # Main WezTerm config (Windows side)
 +-- shell/
 |   +-- wsl-additions.sh         # Sourced by .bashrc
 |   +-- starship.toml            # Starship prompt config
@@ -158,10 +164,13 @@ AITerminalInterfaceConfigs/
 +-- zellij/
 |   +-- config.kdl               # Zellij base config (theme, defaults)
 |   +-- layouts/
-|       +-- ai-workbench.kdl     # 4-pane AI layout
+|       +-- ai-workbench.kdl     # Two-tab AI layout
 +-- claude/
 |   +-- statusline.py            # Claude Code statusline (symlinked into ~/.claude/)
-+-- skills/                      # Custom skills (future)
++-- .claude/
+|   +-- settings.json            # Repo-scoped Claude Code permissions
++-- skills/                      # Reusable AI workflows (placeholder)
++-- docs/                        # Session notes, setup transcripts
 +-- .gitattributes
 +-- .gitignore
 +-- README.md
