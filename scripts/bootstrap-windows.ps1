@@ -70,10 +70,11 @@ $tools = @(
     @{ Name = "Node.js";     Cmd = "node";    Install = "winget install OpenJS.NodeJS.LTS" },
     @{ Name = "Git";         Cmd = "git";     Install = "winget install Git.Git" },
     @{ Name = "Python 3.13"; Cmd = "python";  Install = "winget install Python.Python.3.13" },
-    @{ Name = "Cursor IDE";  Cmd = "cursor";  Install = "winget install Anysphere.Cursor" }
+    @{ Name = "Cursor IDE";  Cmd = "cursor";  Install = "winget install Anysphere.Cursor" },
+    @{ Name = "Pandoc";      Cmd = "pandoc";  Install = "winget install JohnMacFarlane.Pandoc" }
 )
 
-$autoInstall = @("Cursor IDE")  # tools we auto-install via winget if missing
+$autoInstall = @("Cursor IDE", "Pandoc")  # tools we auto-install via winget if missing
 
 foreach ($tool in $tools) {
     $found = Get-Command $tool.Cmd -ErrorAction SilentlyContinue
