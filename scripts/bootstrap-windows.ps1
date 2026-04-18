@@ -10,7 +10,9 @@
 
 param(
     [string]$WSLDistro = "Ubuntu",
-    [switch]$SkipWSL
+    [switch]$SkipWSL,
+    [string]$MemoryRepoPath = "D:\AI\ai-partner-memories",
+    [string]$MemoryRepoUrl  = "https://github.com/pandrux/ai-partner-memories.git"
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,7 +27,7 @@ Write-Host ""
 # -----------------------------------------------------------------------------
 # 1. WezTerm config
 # -----------------------------------------------------------------------------
-Write-Host "[1/5] WezTerm config..." -ForegroundColor Yellow
+Write-Host "[1/6] WezTerm config..." -ForegroundColor Yellow
 
 $WeztermConfigDir = "$env:USERPROFILE\.config\wezterm"
 $WeztermConfigFile = "$WeztermConfigDir\wezterm.lua"
@@ -49,7 +51,7 @@ Write-Host "  Linked: $WeztermConfigFile -> $SourceConfig" -ForegroundColor Gree
 # -----------------------------------------------------------------------------
 # 2. Check WezTerm is installed
 # -----------------------------------------------------------------------------
-Write-Host "[2/5] Checking WezTerm..." -ForegroundColor Yellow
+Write-Host "[2/6] Checking WezTerm..." -ForegroundColor Yellow
 $wezterm = Get-Command wezterm -ErrorAction SilentlyContinue
 if ($wezterm) {
     Write-Host "  WezTerm found: $($wezterm.Source)" -ForegroundColor Green
@@ -61,7 +63,7 @@ if ($wezterm) {
 # -----------------------------------------------------------------------------
 # 3. Check Windows-side AI CLI tools
 # -----------------------------------------------------------------------------
-Write-Host "[3/5] Checking CLI tools..." -ForegroundColor Yellow
+Write-Host "[3/6] Checking CLI tools..." -ForegroundColor Yellow
 
 $tools = @(
     @{ Name = "Claude Code"; Cmd = "claude";  Install = "npm install -g @anthropic-ai/claude-code" },
@@ -100,7 +102,7 @@ foreach ($tool in $tools) {
 # -----------------------------------------------------------------------------
 # 4. Claude Code statusline + settings
 # -----------------------------------------------------------------------------
-Write-Host "[4/5] Claude Code statusline..." -ForegroundColor Yellow
+Write-Host "[4/6] Claude Code statusline..." -ForegroundColor Yellow
 
 $ClaudeDir = "$env:USERPROFILE\.claude"
 $StatuslineTarget = "$ClaudeDir\statusline.py"
@@ -164,10 +166,59 @@ if (-not $skipStatusLineRegistration) {
 }
 
 # -----------------------------------------------------------------------------
-# 5. WSL bootstrap (optional)
+# 5. Private memory repo (ai-partner-memories)
+# -----------------------------------------------------------------------------
+Write-Host "[5/6] Private memory repo..." -ForegroundColor Yellow
+
+$skipMemoryLink = $false
+
+if (-not (Test-Path $MemoryRepoPath)) {
+    $MemoryParent = Split-Path -Parent $MemoryRepoPath
+    if (-not (Test-Path $MemoryParent)) {
+        New-Item -ItemType Directory -Path $MemoryParent | Out-Null
+    }
+    Write-Host "  Cloning $MemoryRepoUrl..."
+    git clone $MemoryRepoUrl $MemoryRepoPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Clone failed (is GitHub auth configured?). Skipping CLAUDE.md link." -ForegroundColor Red
+        $skipMemoryLink = $true
+    } else {
+        Write-Host "  Cloned to $MemoryRepoPath" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  Memory repo already present at $MemoryRepoPath" -ForegroundColor Green
+}
+
+if (-not $skipMemoryLink) {
+    $ClaudeMdTarget = "$ClaudeDir\CLAUDE.md"
+    $ClaudeMdSource = "$MemoryRepoPath\CLAUDE.md"
+
+    if (Test-Path $ClaudeMdSource) {
+        if (Test-Path $ClaudeMdTarget) {
+            $existingTarget = (Get-Item $ClaudeMdTarget).Target
+            if ($existingTarget -and ($existingTarget -eq $ClaudeMdSource)) {
+                Write-Host "  CLAUDE.md already linked" -ForegroundColor Green
+            } else {
+                $backup = "$ClaudeMdTarget.bak-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+                Move-Item $ClaudeMdTarget $backup
+                Write-Host "  Backed up existing CLAUDE.md to $backup"
+                New-Item -ItemType SymbolicLink -Path $ClaudeMdTarget -Target $ClaudeMdSource | Out-Null
+                Write-Host "  Linked: $ClaudeMdTarget -> $ClaudeMdSource" -ForegroundColor Green
+            }
+        } else {
+            New-Item -ItemType SymbolicLink -Path $ClaudeMdTarget -Target $ClaudeMdSource | Out-Null
+            Write-Host "  Linked: $ClaudeMdTarget -> $ClaudeMdSource" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "  WARN: $ClaudeMdSource does not exist (repo may be empty)" -ForegroundColor Yellow
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 6. WSL bootstrap (optional)
 # -----------------------------------------------------------------------------
 if (-not $SkipWSL) {
-    Write-Host "[5/5] Running WSL bootstrap..." -ForegroundColor Yellow
+    Write-Host "[6/6] Running WSL bootstrap..." -ForegroundColor Yellow
     $wslScript = "$RepoRoot\scripts\bootstrap-wsl.sh"
 
     $wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
@@ -183,7 +234,7 @@ if (-not $SkipWSL) {
         Write-Host "  WSL not available. Skipping." -ForegroundColor DarkGray
     }
 } else {
-    Write-Host "[5/5] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
+    Write-Host "[6/6] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
 }
 
 Write-Host ""

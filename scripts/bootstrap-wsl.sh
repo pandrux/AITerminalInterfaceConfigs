@@ -22,7 +22,7 @@ fi
 # -----------------------------------------------------------------------------
 # System packages
 # -----------------------------------------------------------------------------
-echo "[1/6] System packages..."
+echo "[1/8] System packages..."
 
 # Ensure apt cache is fresh
 sudo apt-get update -qq
@@ -105,7 +105,7 @@ fi
 # -----------------------------------------------------------------------------
 # Node.js (via nvm) — required for Claude Code, Codex, Gemini CLI
 # -----------------------------------------------------------------------------
-echo "[2/6] Node.js..."
+echo "[2/8] Node.js..."
 if ! command -v node &>/dev/null; then
     echo "  Installing nvm..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
@@ -122,7 +122,7 @@ fi
 # -----------------------------------------------------------------------------
 # AI CLI tools
 # -----------------------------------------------------------------------------
-echo "[3/6] AI CLI tools..."
+echo "[3/8] AI CLI tools..."
 
 install_npm_tool() {
     local pkg=$1
@@ -145,7 +145,7 @@ install_npm_tool "@google/gemini-cli"        "gemini"
 # -----------------------------------------------------------------------------
 # Shell config — link .bashrc additions from repo
 # -----------------------------------------------------------------------------
-echo "[4/6] Shell config..."
+echo "[4/8] Shell config..."
 
 SHELL_ADDITIONS="$REPO_ROOT/shell/wsl-additions.sh"
 MARKER="# === terminal-config repo additions ==="
@@ -162,7 +162,7 @@ fi
 # -----------------------------------------------------------------------------
 # Zellij config + layouts — link from repo into Zellij config
 # -----------------------------------------------------------------------------
-echo "[5/6] Zellij config + layouts..."
+echo "[5/8] Zellij config + layouts..."
 
 ZELLIJ_CONFIG_DIR="$HOME/.config/zellij"
 ZELLIJ_LAYOUT_DIR="$ZELLIJ_CONFIG_DIR/layouts"
@@ -191,7 +191,7 @@ done
 # -----------------------------------------------------------------------------
 # API keys reminder
 # -----------------------------------------------------------------------------
-echo "[6/7] API keys..."
+echo "[6/8] API keys..."
 
 KEYS_FILE="$HOME/.config/ai-keys.sh"
 if [ ! -f "$KEYS_FILE" ]; then
@@ -218,7 +218,7 @@ fi
 # -----------------------------------------------------------------------------
 # Claude Code statusline + settings
 # -----------------------------------------------------------------------------
-echo "[7/7] Claude Code statusline..."
+echo "[7/8] Claude Code statusline..."
 
 CLAUDE_DIR="$HOME/.claude"
 mkdir -p "$CLAUDE_DIR"
@@ -256,6 +256,64 @@ if command -v jq &>/dev/null; then
 else
     echo "  (jq not installed — skipping settings.json patch; add manually:)"
     echo "    \"statusLine\": {\"type\":\"command\",\"command\":\"$STATUSLINE_CMD\"}"
+fi
+
+# -----------------------------------------------------------------------------
+# Private memory repo (ai-partner-memories)
+# -----------------------------------------------------------------------------
+echo "[8/8] Private memory repo..."
+
+MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-/mnt/d/AI/ai-partner-memories}"
+MEMORY_REPO_URL="https://github.com/pandrux/ai-partner-memories.git"
+MEMORY_SKIP=""
+
+if [ ! -d "$MEMORY_REPO_PATH" ]; then
+    MEMORY_PARENT="$(dirname "$MEMORY_REPO_PATH")"
+    mkdir -p "$MEMORY_PARENT"
+    echo "  Cloning $MEMORY_REPO_URL..."
+    if git clone "$MEMORY_REPO_URL" "$MEMORY_REPO_PATH"; then
+        echo "  ✓ Cloned to $MEMORY_REPO_PATH"
+    else
+        echo "  ✗ Clone failed (is GitHub auth configured?). Skipping CLAUDE.md link."
+        MEMORY_SKIP=1
+    fi
+else
+    echo "  ✓ Memory repo already present at $MEMORY_REPO_PATH"
+fi
+
+# Mark safe.directory when the repo lives on a Windows mount
+if [[ "$MEMORY_REPO_PATH" == /mnt/* ]]; then
+    if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "$MEMORY_REPO_PATH"; then
+        git config --global --add safe.directory "$MEMORY_REPO_PATH"
+        echo "  Added $MEMORY_REPO_PATH to git safe.directory"
+    fi
+fi
+
+if [ -z "$MEMORY_SKIP" ]; then
+    CLAUDE_MD_TARGET="$CLAUDE_DIR/CLAUDE.md"
+    CLAUDE_MD_SOURCE="$MEMORY_REPO_PATH/CLAUDE.md"
+
+    if [ -f "$CLAUDE_MD_SOURCE" ]; then
+        if [ -L "$CLAUDE_MD_TARGET" ]; then
+            existing="$(readlink "$CLAUDE_MD_TARGET")"
+            if [ "$existing" = "$CLAUDE_MD_SOURCE" ]; then
+                echo "  ✓ CLAUDE.md already linked"
+            else
+                rm "$CLAUDE_MD_TARGET"
+                ln -s "$CLAUDE_MD_SOURCE" "$CLAUDE_MD_TARGET"
+                echo "  ✓ Re-linked $CLAUDE_MD_TARGET -> $CLAUDE_MD_SOURCE"
+            fi
+        elif [ -f "$CLAUDE_MD_TARGET" ]; then
+            mv "$CLAUDE_MD_TARGET" "$CLAUDE_MD_TARGET.bak-$(date +%Y%m%d-%H%M)"
+            ln -s "$CLAUDE_MD_SOURCE" "$CLAUDE_MD_TARGET"
+            echo "  Backed up existing CLAUDE.md and linked repo version"
+        else
+            ln -s "$CLAUDE_MD_SOURCE" "$CLAUDE_MD_TARGET"
+            echo "  ✓ Linked $CLAUDE_MD_TARGET -> $CLAUDE_MD_SOURCE"
+        fi
+    else
+        echo "  WARN: $CLAUDE_MD_SOURCE does not exist (repo may be empty)"
+    fi
 fi
 
 echo ""
