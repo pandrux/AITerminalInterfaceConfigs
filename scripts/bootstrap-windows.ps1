@@ -219,19 +219,25 @@ if (-not $skipMemoryLink) {
 # -----------------------------------------------------------------------------
 Write-Host "[6/7] Memory sync scheduled task..." -ForegroundColor Yellow
 
-$SyncTaskName   = "AIPartnerMemorySync"
-$SyncScriptPath = "$RepoRoot\scripts\sync-memories.ps1"
+$SyncTaskName     = "AIPartnerMemorySync"
+$SyncScriptPath   = "$RepoRoot\scripts\sync-memories.ps1"
+$SyncLauncherPath = "$RepoRoot\scripts\sync-memories-launcher.vbs"
 
 if (-not (Test-Path $SyncScriptPath)) {
     Write-Host "  WARN: $SyncScriptPath not found; skipping task registration." -ForegroundColor Yellow
+} elseif (-not (Test-Path $SyncLauncherPath)) {
+    Write-Host "  WARN: $SyncLauncherPath not found; skipping task registration." -ForegroundColor Yellow
 } else {
-    # schtasks.exe is more reliable than Register-ScheduledTask for repeating
-    # MINUTE-interval tasks; use /F to overwrite an existing entry so re-runs
-    # of bootstrap pick up script-path or interval changes.
-    $syncCmd = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$SyncScriptPath`""
+    # Register via wscript.exe + a VBS launcher so no console window flashes
+    # every 5 minutes. powershell.exe is a console-subsystem process, so even
+    # with -WindowStyle Hidden there's a brief window flicker before hide
+    # takes effect; wscript.exe is GUI-subsystem, so no console is ever
+    # created for the child. schtasks /F overwrites any prior entry so
+    # re-runs of bootstrap pick up changes.
+    $syncCmd = "wscript.exe `"$SyncLauncherPath`""
     schtasks /Create /SC MINUTE /MO 5 /TN $SyncTaskName /TR $syncCmd /F | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "  Registered scheduled task '$SyncTaskName' (5-min interval)" -ForegroundColor Green
+        Write-Host "  Registered scheduled task '$SyncTaskName' (5-min interval, silent)" -ForegroundColor Green
     } else {
         Write-Host "  WARN: schtasks /Create returned $LASTEXITCODE" -ForegroundColor Yellow
     }
