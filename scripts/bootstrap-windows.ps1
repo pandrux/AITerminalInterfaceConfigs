@@ -89,10 +89,15 @@ foreach ($tool in $tools) {
         $wingetId = $Matches[1]
         Write-Host "  [AUTO] Installing $($tool.Name) via winget ($wingetId)..." -ForegroundColor Yellow
         winget install --id $wingetId --silent --accept-source-agreements --accept-package-agreements
-        if ($LASTEXITCODE -eq 0) {
+        $wingetExit = $LASTEXITCODE
+        # -1978335189 = 0x8A15002B = APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE
+        # (already installed / no newer version). Not a real failure.
+        if ($wingetExit -eq 0) {
             Write-Host "  [OK] $($tool.Name) installed" -ForegroundColor Green
+        } elseif ($wingetExit -eq -1978335189) {
+            Write-Host "  [OK] $($tool.Name) already current" -ForegroundColor Green
         } else {
-            Write-Host "  [FAIL] $($tool.Name) install returned $LASTEXITCODE" -ForegroundColor Red
+            Write-Host "  [FAIL] $($tool.Name) install returned $wingetExit" -ForegroundColor Red
         }
     } else {
         Write-Host "  [MISSING] $($tool.Name) -- Install: $($tool.Install)" -ForegroundColor Red
