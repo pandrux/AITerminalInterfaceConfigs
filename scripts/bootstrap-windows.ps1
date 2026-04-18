@@ -27,7 +27,7 @@ Write-Host ""
 # -----------------------------------------------------------------------------
 # 1. WezTerm config
 # -----------------------------------------------------------------------------
-Write-Host "[1/6] WezTerm config..." -ForegroundColor Yellow
+Write-Host "[1/7] WezTerm config..." -ForegroundColor Yellow
 
 $WeztermConfigDir = "$env:USERPROFILE\.config\wezterm"
 $WeztermConfigFile = "$WeztermConfigDir\wezterm.lua"
@@ -51,7 +51,7 @@ Write-Host "  Linked: $WeztermConfigFile -> $SourceConfig" -ForegroundColor Gree
 # -----------------------------------------------------------------------------
 # 2. Check WezTerm is installed
 # -----------------------------------------------------------------------------
-Write-Host "[2/6] Checking WezTerm..." -ForegroundColor Yellow
+Write-Host "[2/7] Checking WezTerm..." -ForegroundColor Yellow
 $wezterm = Get-Command wezterm -ErrorAction SilentlyContinue
 if ($wezterm) {
     Write-Host "  WezTerm found: $($wezterm.Source)" -ForegroundColor Green
@@ -63,7 +63,7 @@ if ($wezterm) {
 # -----------------------------------------------------------------------------
 # 3. Check Windows-side AI CLI tools
 # -----------------------------------------------------------------------------
-Write-Host "[3/6] Checking CLI tools..." -ForegroundColor Yellow
+Write-Host "[3/7] Checking CLI tools..." -ForegroundColor Yellow
 
 $tools = @(
     @{ Name = "Claude Code"; Cmd = "claude";  Install = "npm install -g @anthropic-ai/claude-code" },
@@ -102,7 +102,7 @@ foreach ($tool in $tools) {
 # -----------------------------------------------------------------------------
 # 4. Claude Code statusline + settings
 # -----------------------------------------------------------------------------
-Write-Host "[4/6] Claude Code statusline..." -ForegroundColor Yellow
+Write-Host "[4/7] Claude Code statusline..." -ForegroundColor Yellow
 
 $ClaudeDir = "$env:USERPROFILE\.claude"
 $StatuslineTarget = "$ClaudeDir\statusline.py"
@@ -168,7 +168,7 @@ if (-not $skipStatusLineRegistration) {
 # -----------------------------------------------------------------------------
 # 5. Private memory repo (ai-partner-memories)
 # -----------------------------------------------------------------------------
-Write-Host "[5/6] Private memory repo..." -ForegroundColor Yellow
+Write-Host "[5/7] Private memory repo..." -ForegroundColor Yellow
 
 $skipMemoryLink = $false
 
@@ -215,10 +215,33 @@ if (-not $skipMemoryLink) {
 }
 
 # -----------------------------------------------------------------------------
-# 6. WSL bootstrap (optional)
+# 6. Memory sync scheduled task
+# -----------------------------------------------------------------------------
+Write-Host "[6/7] Memory sync scheduled task..." -ForegroundColor Yellow
+
+$SyncTaskName   = "AIPartnerMemorySync"
+$SyncScriptPath = "$RepoRoot\scripts\sync-memories.ps1"
+
+if (-not (Test-Path $SyncScriptPath)) {
+    Write-Host "  WARN: $SyncScriptPath not found; skipping task registration." -ForegroundColor Yellow
+} else {
+    # schtasks.exe is more reliable than Register-ScheduledTask for repeating
+    # MINUTE-interval tasks; use /F to overwrite an existing entry so re-runs
+    # of bootstrap pick up script-path or interval changes.
+    $syncCmd = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$SyncScriptPath`""
+    schtasks /Create /SC MINUTE /MO 5 /TN $SyncTaskName /TR $syncCmd /F | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  Registered scheduled task '$SyncTaskName' (5-min interval)" -ForegroundColor Green
+    } else {
+        Write-Host "  WARN: schtasks /Create returned $LASTEXITCODE" -ForegroundColor Yellow
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 7. WSL bootstrap (optional)
 # -----------------------------------------------------------------------------
 if (-not $SkipWSL) {
-    Write-Host "[6/6] Running WSL bootstrap..." -ForegroundColor Yellow
+    Write-Host "[7/7] Running WSL bootstrap..." -ForegroundColor Yellow
     $wslScript = "$RepoRoot\scripts\bootstrap-wsl.sh"
 
     $wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
@@ -234,7 +257,7 @@ if (-not $SkipWSL) {
         Write-Host "  WSL not available. Skipping." -ForegroundColor DarkGray
     }
 } else {
-    Write-Host "[6/6] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
+    Write-Host "[7/7] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
 }
 
 Write-Host ""
