@@ -217,6 +217,34 @@ if (-not $skipMemoryLink) {
     } else {
         Write-Host "  WARN: $ClaudeMdSource does not exist (repo may be empty)" -ForegroundColor Yellow
     }
+
+    # AGENTS.md symlink for Codex CLI (mirrors the CLAUDE.md pattern above).
+    $CodexDir = "$env:USERPROFILE\.codex"
+    if (-not (Test-Path $CodexDir)) {
+        New-Item -ItemType Directory -Path $CodexDir | Out-Null
+    }
+    $AgentsMdTarget = "$CodexDir\AGENTS.md"
+    $AgentsMdSource = "$MemoryRepoPath\AGENTS.md"
+
+    if (Test-Path $AgentsMdSource) {
+        if (Test-Path $AgentsMdTarget) {
+            $existingTarget = (Get-Item $AgentsMdTarget).Target
+            if ($existingTarget -and ($existingTarget -eq $AgentsMdSource)) {
+                Write-Host "  AGENTS.md already linked" -ForegroundColor Green
+            } else {
+                $backup = "$AgentsMdTarget.bak-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+                Move-Item $AgentsMdTarget $backup
+                Write-Host "  Backed up existing AGENTS.md to $backup"
+                New-Item -ItemType SymbolicLink -Path $AgentsMdTarget -Target $AgentsMdSource | Out-Null
+                Write-Host "  Linked: $AgentsMdTarget -> $AgentsMdSource" -ForegroundColor Green
+            }
+        } else {
+            New-Item -ItemType SymbolicLink -Path $AgentsMdTarget -Target $AgentsMdSource | Out-Null
+            Write-Host "  Linked: $AgentsMdTarget -> $AgentsMdSource" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "  WARN: $AgentsMdSource does not exist (repo may be empty)" -ForegroundColor Yellow
+    }
 }
 
 # -----------------------------------------------------------------------------

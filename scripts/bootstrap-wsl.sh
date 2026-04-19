@@ -314,6 +314,33 @@ if [ -z "$MEMORY_SKIP" ]; then
     else
         echo "  WARN: $CLAUDE_MD_SOURCE does not exist (repo may be empty)"
     fi
+
+    # AGENTS.md symlink for Codex CLI (mirrors the CLAUDE.md pattern above).
+    AGENTS_MD_TARGET="$HOME/.codex/AGENTS.md"
+    AGENTS_MD_SOURCE="$MEMORY_REPO_PATH/AGENTS.md"
+    mkdir -p "$HOME/.codex"
+
+    if [ -f "$AGENTS_MD_SOURCE" ]; then
+        if [ -L "$AGENTS_MD_TARGET" ]; then
+            existing="$(readlink "$AGENTS_MD_TARGET")"
+            if [ "$existing" = "$AGENTS_MD_SOURCE" ]; then
+                echo "  ✓ AGENTS.md already linked"
+            else
+                rm "$AGENTS_MD_TARGET"
+                ln -s "$AGENTS_MD_SOURCE" "$AGENTS_MD_TARGET"
+                echo "  ✓ Re-linked $AGENTS_MD_TARGET -> $AGENTS_MD_SOURCE"
+            fi
+        elif [ -f "$AGENTS_MD_TARGET" ]; then
+            mv "$AGENTS_MD_TARGET" "$AGENTS_MD_TARGET.bak-$(date +%Y%m%d-%H%M)"
+            ln -s "$AGENTS_MD_SOURCE" "$AGENTS_MD_TARGET"
+            echo "  Backed up existing AGENTS.md and linked repo version"
+        else
+            ln -s "$AGENTS_MD_SOURCE" "$AGENTS_MD_TARGET"
+            echo "  ✓ Linked $AGENTS_MD_TARGET -> $AGENTS_MD_SOURCE"
+        fi
+    else
+        echo "  WARN: $AGENTS_MD_SOURCE does not exist (repo may be empty)"
+    fi
 fi
 
 echo ""
