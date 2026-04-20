@@ -258,6 +258,71 @@ else
     echo "    \"statusLine\": {\"type\":\"command\",\"command\":\"$STATUSLINE_CMD\"}"
 fi
 
+# SessionStart hook registration. Each hook is idempotent via filename match
+# against existing hook commands, so re-running bootstrap won't double-register.
+register_session_start_hook() {
+    local script_path="$1"
+    local timeout="$2"
+    local status_msg="$3"
+
+    if [ ! -f "$script_path" ]; then
+        echo "  WARN: $script_path not found; skipping hook."
+        return 0
+    fi
+    if ! command -v jq &>/dev/null; then
+        echo "  (jq not installed — skipping SessionStart hook for $(basename "$script_path"))"
+        return 0
+    fi
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        echo '{}' > "$SETTINGS_FILE"
+    fi
+
+    local leaf
+    leaf="$(basename "$script_path")"
+    # Invoke via `bash` explicitly: the repo on /mnt/d may be on DrvFs where
+    # the executable bit isn't reliably preserved.
+    local cmd="bash $script_path"
+
+    local already
+    already="$(jq --arg leaf "$leaf" '
+        (.hooks.SessionStart // [])
+        | map(.hooks // [])
+        | flatten
+        | map(.command // "")
+        | any(contains($leaf))
+    ' "$SETTINGS_FILE")"
+
+    if [ "$already" = "true" ]; then
+        echo "  SessionStart hook already registered: $leaf"
+        return 0
+    fi
+
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg cmd "$cmd" --argjson timeout "$timeout" --arg msg "$status_msg" '
+        .hooks //= {}
+        | .hooks.SessionStart //= []
+        | .hooks.SessionStart += [{
+            hooks: [{
+                type: "command",
+                command: $cmd,
+                timeout: $timeout,
+                statusMessage: $msg
+            }]
+          }]
+    ' "$SETTINGS_FILE" > "$tmp" && mv "$tmp" "$SETTINGS_FILE"
+    echo "  Registered SessionStart hook: $script_path"
+}
+
+# Work-context hook: auto-loads work_context.md from ai-partner-memories when
+# the session's project CLAUDE.md declares Category: work or work-adjacent.
+# No-op otherwise. Mirror of the Windows-side hook registered in
+# bootstrap-windows.ps1.
+register_session_start_hook \
+    "$REPO_ROOT/scripts/session-start-work-context.sh" \
+    10 \
+    "Loading work context if Category: work..."
+
 # -----------------------------------------------------------------------------
 # Private memory repo (ai-partner-memories)
 # -----------------------------------------------------------------------------
