@@ -27,7 +27,7 @@ Write-Host ""
 # -----------------------------------------------------------------------------
 # 1. WezTerm config
 # -----------------------------------------------------------------------------
-Write-Host "[1/7] WezTerm config..." -ForegroundColor Yellow
+Write-Host "[1/8] WezTerm config..." -ForegroundColor Yellow
 
 $WeztermConfigDir = "$env:USERPROFILE\.config\wezterm"
 $WeztermConfigFile = "$WeztermConfigDir\wezterm.lua"
@@ -51,7 +51,7 @@ Write-Host "  Linked: $WeztermConfigFile -> $SourceConfig" -ForegroundColor Gree
 # -----------------------------------------------------------------------------
 # 2. Check WezTerm is installed
 # -----------------------------------------------------------------------------
-Write-Host "[2/7] Checking WezTerm..." -ForegroundColor Yellow
+Write-Host "[2/8] Checking WezTerm..." -ForegroundColor Yellow
 $wezterm = Get-Command wezterm -ErrorAction SilentlyContinue
 if ($wezterm) {
     Write-Host "  WezTerm found: $($wezterm.Source)" -ForegroundColor Green
@@ -63,7 +63,7 @@ if ($wezterm) {
 # -----------------------------------------------------------------------------
 # 3. Check Windows-side AI CLI tools
 # -----------------------------------------------------------------------------
-Write-Host "[3/7] Checking CLI tools..." -ForegroundColor Yellow
+Write-Host "[3/8] Checking CLI tools..." -ForegroundColor Yellow
 
 $tools = @(
     @{ Name = "Claude Code"; Cmd = "claude";  Install = "npm install -g @anthropic-ai/claude-code" },
@@ -107,7 +107,7 @@ foreach ($tool in $tools) {
 # -----------------------------------------------------------------------------
 # 4. Claude Code statusline + settings
 # -----------------------------------------------------------------------------
-Write-Host "[4/7] Claude Code statusline..." -ForegroundColor Yellow
+Write-Host "[4/8] Claude Code statusline..." -ForegroundColor Yellow
 
 $ClaudeDir = "$env:USERPROFILE\.claude"
 $StatuslineTarget = "$ClaudeDir\statusline.py"
@@ -171,9 +171,48 @@ if (-not $skipStatusLineRegistration) {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Private memory repo (ai-partner-memories)
+# 5. PowerShell profile (dot-source shell/windows-additions.ps1)
 # -----------------------------------------------------------------------------
-Write-Host "[5/7] Private memory repo..." -ForegroundColor Yellow
+Write-Host "[5/8] PowerShell profile..." -ForegroundColor Yellow
+
+$ProfilePath   = $PROFILE.CurrentUserAllHosts
+$ProfileDir    = Split-Path -Parent $ProfilePath
+$AdditionsPath = "$RepoRoot\shell\windows-additions.ps1"
+
+if (-not (Test-Path $ProfileDir)) {
+    New-Item -ItemType Directory -Path $ProfileDir -Force | Out-Null
+    Write-Host "  Created $ProfileDir"
+}
+
+if (-not (Test-Path $AdditionsPath)) {
+    Write-Host "  WARN: $AdditionsPath not found; skipping profile wire-up." -ForegroundColor Yellow
+} else {
+    # Sentinel match is on the filename, not the full path — tolerates
+    # slash-direction differences and relative paths in existing profiles.
+    $alreadyWired = $false
+    if (Test-Path $ProfilePath) {
+        $existing = Get-Content $ProfilePath -Raw
+        if ($existing -match 'windows-additions\.ps1') { $alreadyWired = $true }
+    }
+
+    if ($alreadyWired) {
+        Write-Host "  [OK] Profile already dot-sources windows-additions.ps1" -ForegroundColor Green
+    } else {
+        $stanza = @"
+
+# AITerminalInterfaceConfigs additions
+`$_AITermAdditions = '$AdditionsPath'
+if (Test-Path `$_AITermAdditions) { . `$_AITermAdditions }
+"@
+        Add-Content -Path $ProfilePath -Value $stanza -Encoding UTF8
+        Write-Host "  Wired dot-source into $ProfilePath" -ForegroundColor Green
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 6. Private memory repo (ai-partner-memories)
+# -----------------------------------------------------------------------------
+Write-Host "[6/8] Private memory repo..." -ForegroundColor Yellow
 
 $skipMemoryLink = $false
 
@@ -248,9 +287,9 @@ if (-not $skipMemoryLink) {
 }
 
 # -----------------------------------------------------------------------------
-# 6. Memory sync scheduled task
+# 7. Memory sync scheduled task
 # -----------------------------------------------------------------------------
-Write-Host "[6/7] Memory sync scheduled task..." -ForegroundColor Yellow
+Write-Host "[7/8] Memory sync scheduled task..." -ForegroundColor Yellow
 
 $SyncTaskName     = "AIPartnerMemorySync"
 $SyncScriptPath   = "$RepoRoot\scripts\sync-memories.ps1"
@@ -277,10 +316,10 @@ if (-not (Test-Path $SyncScriptPath)) {
 }
 
 # -----------------------------------------------------------------------------
-# 7. WSL bootstrap (optional)
+# 8. WSL bootstrap (optional)
 # -----------------------------------------------------------------------------
 if (-not $SkipWSL) {
-    Write-Host "[7/7] Running WSL bootstrap..." -ForegroundColor Yellow
+    Write-Host "[8/8] Running WSL bootstrap..." -ForegroundColor Yellow
     $wslScript = "$RepoRoot\scripts\bootstrap-wsl.sh"
 
     $wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
@@ -296,7 +335,7 @@ if (-not $SkipWSL) {
         Write-Host "  WSL not available. Skipping." -ForegroundColor DarkGray
     }
 } else {
-    Write-Host "[7/7] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
+    Write-Host "[8/8] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
 }
 
 Write-Host ""
