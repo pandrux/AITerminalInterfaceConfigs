@@ -173,21 +173,30 @@ if (-not $skipStatusLineRegistration) {
     $settingsDirty = $true
 }
 
-# Register SessionStart hook that checks the repo for upstream drift so
-# Claude can offer a fast-forward pull on session start instead of running
-# into a mid-edit stash/replay.
-$SessionStartScriptPath = "$RepoRoot\scripts\session-start-status.ps1"
-if (-not (Test-Path $SessionStartScriptPath)) {
-    Write-Host "  WARN: $SessionStartScriptPath not found; skipping SessionStart hook." -ForegroundColor Yellow
-} else {
-    # Idempotency: match on the script filename in any existing SessionStart
-    # hook command so re-runs don't double-register.
+# SessionStart hook registration. Each hook is idempotent via filename match
+# against existing hook commands, so re-running bootstrap won't double-register.
+function Register-SessionStartHook {
+    param(
+        $Settings,
+        [string]$ScriptPath,
+        [int]$Timeout,
+        [string]$StatusMessage
+    )
+
+    if (-not (Test-Path $ScriptPath)) {
+        Write-Host "  WARN: $ScriptPath not found; skipping hook." -ForegroundColor Yellow
+        return $false
+    }
+
+    $scriptLeaf = Split-Path -Leaf $ScriptPath
+    $escapedLeaf = [regex]::Escape($scriptLeaf)
+
     $alreadyRegistered = $false
-    if (($settings.PSObject.Properties.Name -contains 'hooks') -and $settings.hooks -and
-        ($settings.hooks.PSObject.Properties.Name -contains 'SessionStart') -and $settings.hooks.SessionStart) {
-        foreach ($entry in @($settings.hooks.SessionStart)) {
+    if (($Settings.PSObject.Properties.Name -contains 'hooks') -and $Settings.hooks -and
+        ($Settings.hooks.PSObject.Properties.Name -contains 'SessionStart') -and $Settings.hooks.SessionStart) {
+        foreach ($entry in @($Settings.hooks.SessionStart)) {
             foreach ($h in @($entry.hooks)) {
-                if ($h.command -and ($h.command -match 'session-start-status\.ps1')) {
+                if ($h.command -and ($h.command -match $escapedLeaf)) {
                     $alreadyRegistered = $true
                 }
             }
@@ -195,29 +204,50 @@ if (-not (Test-Path $SessionStartScriptPath)) {
     }
 
     if ($alreadyRegistered) {
-        Write-Host "  SessionStart hook already registered" -ForegroundColor Green
-    } else {
-        $hookCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$SessionStartScriptPath`""
-        $hookInner = New-Object PSObject -Property @{
-            type          = 'command'
-            command       = $hookCmd
-            timeout       = 15
-            statusMessage = 'Checking AITerminalInterfaceConfigs for upstream drift...'
-        }
-        $hookEntry = New-Object PSObject -Property @{ hooks = @($hookInner) }
-
-        if (-not ($settings.PSObject.Properties.Name -contains 'hooks') -or -not $settings.hooks) {
-            $settings | Add-Member -NotePropertyName 'hooks' -NotePropertyValue (New-Object PSObject) -Force
-        }
-        $existingList = @()
-        if (($settings.hooks.PSObject.Properties.Name -contains 'SessionStart') -and $settings.hooks.SessionStart) {
-            $existingList = @($settings.hooks.SessionStart)
-        }
-        $settings.hooks | Add-Member -NotePropertyName 'SessionStart' -NotePropertyValue ($existingList + $hookEntry) -Force
-
-        Write-Host "  Registered SessionStart hook: $SessionStartScriptPath" -ForegroundColor Green
-        $settingsDirty = $true
+        Write-Host "  SessionStart hook already registered: $scriptLeaf" -ForegroundColor Green
+        return $false
     }
+
+    $hookCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
+    $hookInner = New-Object PSObject -Property @{
+        type          = 'command'
+        command       = $hookCmd
+        timeout       = $Timeout
+        statusMessage = $StatusMessage
+    }
+    $hookEntry = New-Object PSObject -Property @{ hooks = @($hookInner) }
+
+    if (-not ($Settings.PSObject.Properties.Name -contains 'hooks') -or -not $Settings.hooks) {
+        $Settings | Add-Member -NotePropertyName 'hooks' -NotePropertyValue (New-Object PSObject) -Force
+    }
+    $existingList = @()
+    if (($Settings.hooks.PSObject.Properties.Name -contains 'SessionStart') -and $Settings.hooks.SessionStart) {
+        $existingList = @($Settings.hooks.SessionStart)
+    }
+    $Settings.hooks | Add-Member -NotePropertyName 'SessionStart' -NotePropertyValue ($existingList + $hookEntry) -Force
+
+    Write-Host "  Registered SessionStart hook: $ScriptPath" -ForegroundColor Green
+    return $true
+}
+
+# Drift-check hook: fetches origin on this repo so Claude can offer a
+# fast-forward pull at session start instead of running into mid-edit
+# stash/replay from weekend drift.
+if (Register-SessionStartHook -Settings $settings `
+        -ScriptPath "$RepoRoot\scripts\session-start-status.ps1" `
+        -Timeout 15 `
+        -StatusMessage 'Checking AITerminalInterfaceConfigs for upstream drift...') {
+    $settingsDirty = $true
+}
+
+# Work-context hook: auto-loads D:\AI\ai-partner-memories\work_context.md
+# when the session's project CLAUDE.md declares Category: work or
+# Category: work-adjacent. No-op otherwise.
+if (Register-SessionStartHook -Settings $settings `
+        -ScriptPath "$RepoRoot\scripts\session-start-work-context.ps1" `
+        -Timeout 10 `
+        -StatusMessage 'Loading work context if Category: work...') {
+    $settingsDirty = $true
 }
 
 if ($settingsDirty) {
