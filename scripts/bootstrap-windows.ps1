@@ -161,13 +161,67 @@ if (-not $pythonPath) {
     Write-Host "  WARN: Skipping statusLine registration." -ForegroundColor Yellow
     $skipStatusLineRegistration = $true
 }
+# Both statusLine and the SessionStart hook live in ~/.claude/settings.json.
+# Track mutations and write once at the end of this block.
+$settingsDirty = $false
+
 if (-not $skipStatusLineRegistration) {
     $statuslineCmd = "`"$($pythonPath.Replace('\', '/'))`" `"$($StatuslineTarget.Replace('\', '/'))`""
     $statusLineObj = New-Object PSObject -Property @{ type = "command"; command = $statuslineCmd }
     $settings | Add-Member -NotePropertyName "statusLine" -NotePropertyValue $statusLineObj -Force
-
-    $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
     Write-Host "  Registered statusLine: $pythonPath" -ForegroundColor Green
+    $settingsDirty = $true
+}
+
+# Register SessionStart hook that checks the repo for upstream drift so
+# Claude can offer a fast-forward pull on session start instead of running
+# into a mid-edit stash/replay.
+$SessionStartScriptPath = "$RepoRoot\scripts\session-start-status.ps1"
+if (-not (Test-Path $SessionStartScriptPath)) {
+    Write-Host "  WARN: $SessionStartScriptPath not found; skipping SessionStart hook." -ForegroundColor Yellow
+} else {
+    # Idempotency: match on the script filename in any existing SessionStart
+    # hook command so re-runs don't double-register.
+    $alreadyRegistered = $false
+    if (($settings.PSObject.Properties.Name -contains 'hooks') -and $settings.hooks -and
+        ($settings.hooks.PSObject.Properties.Name -contains 'SessionStart') -and $settings.hooks.SessionStart) {
+        foreach ($entry in @($settings.hooks.SessionStart)) {
+            foreach ($h in @($entry.hooks)) {
+                if ($h.command -and ($h.command -match 'session-start-status\.ps1')) {
+                    $alreadyRegistered = $true
+                }
+            }
+        }
+    }
+
+    if ($alreadyRegistered) {
+        Write-Host "  SessionStart hook already registered" -ForegroundColor Green
+    } else {
+        $hookCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$SessionStartScriptPath`""
+        $hookInner = New-Object PSObject -Property @{
+            type          = 'command'
+            command       = $hookCmd
+            timeout       = 15
+            statusMessage = 'Checking AITerminalInterfaceConfigs for upstream drift...'
+        }
+        $hookEntry = New-Object PSObject -Property @{ hooks = @($hookInner) }
+
+        if (-not ($settings.PSObject.Properties.Name -contains 'hooks') -or -not $settings.hooks) {
+            $settings | Add-Member -NotePropertyName 'hooks' -NotePropertyValue (New-Object PSObject) -Force
+        }
+        $existingList = @()
+        if (($settings.hooks.PSObject.Properties.Name -contains 'SessionStart') -and $settings.hooks.SessionStart) {
+            $existingList = @($settings.hooks.SessionStart)
+        }
+        $settings.hooks | Add-Member -NotePropertyName 'SessionStart' -NotePropertyValue ($existingList + $hookEntry) -Force
+
+        Write-Host "  Registered SessionStart hook: $SessionStartScriptPath" -ForegroundColor Green
+        $settingsDirty = $true
+    }
+}
+
+if ($settingsDirty) {
+    $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsFile -Encoding UTF8
 }
 
 # -----------------------------------------------------------------------------
