@@ -314,6 +314,14 @@ register_session_start_hook() {
     echo "  Registered SessionStart hook: $script_path"
 }
 
+# Drift-check hook: fetches origin on this repo so Claude can offer a
+# fast-forward pull at session start instead of running into mid-edit
+# stash/replay from weekend drift. Mirror of the Windows-side hook.
+register_session_start_hook \
+    "$REPO_ROOT/scripts/session-start-status.sh" \
+    15 \
+    "Checking AITerminalInterfaceConfigs for upstream drift..."
+
 # Work-context hook: auto-loads work_context.md from ai-partner-memories when
 # the session's project CLAUDE.md declares Category: work or work-adjacent.
 # No-op otherwise. Mirror of the Windows-side hook registered in
