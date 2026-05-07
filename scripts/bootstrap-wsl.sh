@@ -314,6 +314,60 @@ register_session_start_hook() {
     echo "  Registered SessionStart hook: $script_path"
 }
 
+# SessionEnd hook registration. Same idempotent-by-filename pattern as the
+# SessionStart variant above; parallel function rather than parameterising.
+register_session_end_hook() {
+    local script_path="$1"
+    local timeout="$2"
+    local status_msg="$3"
+
+    if [ ! -f "$script_path" ]; then
+        echo "  WARN: $script_path not found; skipping hook."
+        return 0
+    fi
+    if ! command -v jq &>/dev/null; then
+        echo "  (jq not installed — skipping SessionEnd hook for $(basename "$script_path"))"
+        return 0
+    fi
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        echo '{}' > "$SETTINGS_FILE"
+    fi
+
+    local leaf
+    leaf="$(basename "$script_path")"
+    local cmd="bash $script_path"
+
+    local already
+    already="$(jq --arg leaf "$leaf" '
+        (.hooks.SessionEnd // [])
+        | map(.hooks // [])
+        | flatten
+        | map(.command // "")
+        | any(contains($leaf))
+    ' "$SETTINGS_FILE")"
+
+    if [ "$already" = "true" ]; then
+        echo "  SessionEnd hook already registered: $leaf"
+        return 0
+    fi
+
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg cmd "$cmd" --argjson timeout "$timeout" --arg msg "$status_msg" '
+        .hooks //= {}
+        | .hooks.SessionEnd //= []
+        | .hooks.SessionEnd += [{
+            hooks: [{
+                type: "command",
+                command: $cmd,
+                timeout: $timeout,
+                statusMessage: $msg
+            }]
+          }]
+    ' "$SETTINGS_FILE" > "$tmp" && mv "$tmp" "$SETTINGS_FILE"
+    echo "  Registered SessionEnd hook: $script_path"
+}
+
 # Drift-check hook: fetches origin on this repo so Claude can offer a
 # fast-forward pull at session start instead of running into mid-edit
 # stash/replay from weekend drift. Mirror of the Windows-side hook.
@@ -330,6 +384,20 @@ register_session_start_hook \
     "$REPO_ROOT/scripts/session-start-work-context.sh" \
     10 \
     "Loading work context if Category: work..."
+
+# Memory encryption hooks: WSL wrappers that delegate to the Windows-side
+# scripts via powershell.exe interop. DPAPI is Windows-only; the encrypted
+# blob lives on NTFS, so duplicating crypto in WSL adds no value.
+# See scripts/encryption/README.md for full design + threat model.
+register_session_start_hook \
+    "$REPO_ROOT/scripts/encryption/decrypt-memory.sh" \
+    30 \
+    "Decrypting memory bundles..."
+
+register_session_end_hook \
+    "$REPO_ROOT/scripts/encryption/encrypt-memory.sh" \
+    30 \
+    "Re-encrypting memory bundles..."
 
 # -----------------------------------------------------------------------------
 # Private memory repo (ai-partner-memories)

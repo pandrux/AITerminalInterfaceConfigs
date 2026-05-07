@@ -73,10 +73,11 @@ $tools = @(
     @{ Name = "Git";         Cmd = "git";     Install = "winget install Git.Git" },
     @{ Name = "Python 3.13"; Cmd = "python";  Install = "winget install Python.Python.3.13" },
     @{ Name = "Cursor IDE";  Cmd = "cursor";  Install = "winget install Anysphere.Cursor" },
-    @{ Name = "Pandoc";      Cmd = "pandoc";  Install = "winget install JohnMacFarlane.Pandoc" }
+    @{ Name = "Pandoc";      Cmd = "pandoc";  Install = "winget install JohnMacFarlane.Pandoc" },
+    @{ Name = "GnuPG";       Cmd = "gpg";     Install = "winget install GnuPG.GnuPG" }
 )
 
-$autoInstall = @("Cursor IDE", "Pandoc")  # tools we auto-install via winget if missing
+$autoInstall = @("Cursor IDE", "Pandoc", "GnuPG")  # tools we auto-install via winget if missing
 
 foreach ($tool in $tools) {
     $found = Get-Command $tool.Cmd -ErrorAction SilentlyContinue
@@ -230,6 +231,64 @@ function Register-SessionStartHook {
     return $true
 }
 
+# SessionEnd hook registration. Same idempotent-by-filename pattern as
+# Register-SessionStartHook above; parallel function rather than parameterizing
+# the existing one to keep the diff minimal.
+function Register-SessionEndHook {
+    param(
+        $Settings,
+        [string]$ScriptPath,
+        [int]$Timeout,
+        [string]$StatusMessage
+    )
+
+    if (-not (Test-Path $ScriptPath)) {
+        Write-Host "  WARN: $ScriptPath not found; skipping hook." -ForegroundColor Yellow
+        return $false
+    }
+
+    $scriptLeaf = Split-Path -Leaf $ScriptPath
+    $escapedLeaf = [regex]::Escape($scriptLeaf)
+
+    $alreadyRegistered = $false
+    if (($Settings.PSObject.Properties.Name -contains 'hooks') -and $Settings.hooks -and
+        ($Settings.hooks.PSObject.Properties.Name -contains 'SessionEnd') -and $Settings.hooks.SessionEnd) {
+        foreach ($entry in @($Settings.hooks.SessionEnd)) {
+            foreach ($h in @($entry.hooks)) {
+                if ($h.command -and ($h.command -match $escapedLeaf)) {
+                    $alreadyRegistered = $true
+                }
+            }
+        }
+    }
+
+    if ($alreadyRegistered) {
+        Write-Host "  SessionEnd hook already registered: $scriptLeaf" -ForegroundColor Green
+        return $false
+    }
+
+    $hookCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
+    $hookInner = New-Object PSObject -Property @{
+        type          = 'command'
+        command       = $hookCmd
+        timeout       = $Timeout
+        statusMessage = $StatusMessage
+    }
+    $hookEntry = New-Object PSObject -Property @{ hooks = @($hookInner) }
+
+    if (-not ($Settings.PSObject.Properties.Name -contains 'hooks') -or -not $Settings.hooks) {
+        $Settings | Add-Member -NotePropertyName 'hooks' -NotePropertyValue (New-Object PSObject) -Force
+    }
+    $existingList = @()
+    if (($Settings.hooks.PSObject.Properties.Name -contains 'SessionEnd') -and $Settings.hooks.SessionEnd) {
+        $existingList = @($Settings.hooks.SessionEnd)
+    }
+    $Settings.hooks | Add-Member -NotePropertyName 'SessionEnd' -NotePropertyValue ($existingList + $hookEntry) -Force
+
+    Write-Host "  Registered SessionEnd hook: $ScriptPath" -ForegroundColor Green
+    return $true
+}
+
 # Drift-check hook: fetches origin on this repo so Claude can offer a
 # fast-forward pull at session start instead of running into mid-edit
 # stash/replay from weekend drift.
@@ -247,6 +306,22 @@ if (Register-SessionStartHook -Settings $settings `
         -ScriptPath "$RepoRoot\scripts\session-start-work-context.ps1" `
         -Timeout 10 `
         -StatusMessage 'Loading work context if Category: work...') {
+    $settingsDirty = $true
+}
+
+# Memory encryption hooks: decrypt at SessionStart, re-encrypt at SessionEnd.
+# Requires gpg on PATH and per-machine setup via setup-machine.ps1.
+# See scripts/encryption/README.md for the full design + threat model.
+if (Register-SessionStartHook -Settings $settings `
+        -ScriptPath "$RepoRoot\scripts\encryption\decrypt-memory.ps1" `
+        -Timeout 30 `
+        -StatusMessage 'Decrypting memory bundles...') {
+    $settingsDirty = $true
+}
+if (Register-SessionEndHook -Settings $settings `
+        -ScriptPath "$RepoRoot\scripts\encryption\encrypt-memory.ps1" `
+        -Timeout 30 `
+        -StatusMessage 'Re-encrypting memory bundles...') {
     $settingsDirty = $true
 }
 
