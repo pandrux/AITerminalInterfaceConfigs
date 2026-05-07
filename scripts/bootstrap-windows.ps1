@@ -27,7 +27,7 @@ Write-Host ""
 # -----------------------------------------------------------------------------
 # 1. WezTerm config
 # -----------------------------------------------------------------------------
-Write-Host "[1/8] WezTerm config..." -ForegroundColor Yellow
+Write-Host "[1/9] WezTerm config..." -ForegroundColor Yellow
 
 $WeztermConfigDir = "$env:USERPROFILE\.config\wezterm"
 $WeztermConfigFile = "$WeztermConfigDir\wezterm.lua"
@@ -51,7 +51,7 @@ Write-Host "  Linked: $WeztermConfigFile -> $SourceConfig" -ForegroundColor Gree
 # -----------------------------------------------------------------------------
 # 2. Check WezTerm is installed
 # -----------------------------------------------------------------------------
-Write-Host "[2/8] Checking WezTerm..." -ForegroundColor Yellow
+Write-Host "[2/9] Checking WezTerm..." -ForegroundColor Yellow
 $wezterm = Get-Command wezterm -ErrorAction SilentlyContinue
 if ($wezterm) {
     Write-Host "  WezTerm found: $($wezterm.Source)" -ForegroundColor Green
@@ -63,7 +63,7 @@ if ($wezterm) {
 # -----------------------------------------------------------------------------
 # 3. Check Windows-side AI CLI tools
 # -----------------------------------------------------------------------------
-Write-Host "[3/8] Checking CLI tools..." -ForegroundColor Yellow
+Write-Host "[3/9] Checking CLI tools..." -ForegroundColor Yellow
 
 $tools = @(
     @{ Name = "Claude Code"; Cmd = "claude";  Install = "npm install -g @anthropic-ai/claude-code" },
@@ -108,7 +108,7 @@ foreach ($tool in $tools) {
 # -----------------------------------------------------------------------------
 # 4. Claude Code statusline + settings
 # -----------------------------------------------------------------------------
-Write-Host "[4/8] Claude Code statusline..." -ForegroundColor Yellow
+Write-Host "[4/9] Claude Code statusline..." -ForegroundColor Yellow
 
 $ClaudeDir = "$env:USERPROFILE\.claude"
 $StatuslineTarget = "$ClaudeDir\statusline.py"
@@ -332,7 +332,7 @@ if ($settingsDirty) {
 # -----------------------------------------------------------------------------
 # 5. PowerShell profile (dot-source shell/windows-additions.ps1)
 # -----------------------------------------------------------------------------
-Write-Host "[5/8] PowerShell profile..." -ForegroundColor Yellow
+Write-Host "[5/9] PowerShell profile..." -ForegroundColor Yellow
 
 $ProfilePath   = $PROFILE.CurrentUserAllHosts
 $ProfileDir    = Split-Path -Parent $ProfilePath
@@ -369,9 +369,59 @@ if (Test-Path `$_AITermAdditions) { . `$_AITermAdditions }
 }
 
 # -----------------------------------------------------------------------------
-# 6. Private memory repo (ai-partner-memories)
+# 6. Todoist quick_add hotkey (free CTRL+SPACE for WezTerm leader)
 # -----------------------------------------------------------------------------
-Write-Host "[6/8] Private memory repo..." -ForegroundColor Yellow
+# Tom is on Todoist Legacy Pro (2022 freeze) — the in-app keyboard-shortcut
+# UI under Settings -> Desktop is unavailable. Todoist's Electron build keeps
+# global hotkeys in a plain user-writable JSON file, so we patch it directly.
+# Todoist rewrites this file on exit, so we skip if it's running.
+Write-Host "[6/9] Todoist quick_add hotkey..." -ForegroundColor Yellow
+
+$TodoistSettingsFile = "$env:APPDATA\todoist\settings.json"
+$DesiredQuickAdd     = "Control+Alt+Space"
+
+if (-not (Test-Path $TodoistSettingsFile)) {
+    Write-Host "  Todoist not installed (or never launched). Skipping." -ForegroundColor DarkGray
+} elseif (Get-Process -Name todoist -ErrorAction SilentlyContinue) {
+    Write-Host "  WARN: Todoist is running. It rewrites settings.json on exit," -ForegroundColor Yellow
+    Write-Host "  WARN: so this change would be lost. Tray icon -> Quit, then re-run." -ForegroundColor Yellow
+} else {
+    $todoistSettings = $null
+    try { $todoistSettings = Get-Content $TodoistSettingsFile -Raw | ConvertFrom-Json } catch { }
+
+    if (-not $todoistSettings) {
+        Write-Host "  WARN: Could not parse $TodoistSettingsFile. Skipping." -ForegroundColor Yellow
+    } else {
+        $current = $null
+        if (($todoistSettings.PSObject.Properties.Name -contains 'global_shortcuts') -and
+            $todoistSettings.global_shortcuts -and
+            ($todoistSettings.global_shortcuts.PSObject.Properties.Name -contains 'quick_add')) {
+            $current = $todoistSettings.global_shortcuts.quick_add
+        }
+
+        if ($current -eq $DesiredQuickAdd) {
+            Write-Host "  [OK] quick_add already = $DesiredQuickAdd" -ForegroundColor Green
+        } else {
+            if (-not ($todoistSettings.PSObject.Properties.Name -contains 'global_shortcuts') -or
+                -not $todoistSettings.global_shortcuts) {
+                $todoistSettings | Add-Member -NotePropertyName 'global_shortcuts' `
+                    -NotePropertyValue (New-Object PSObject) -Force
+            }
+            $todoistSettings.global_shortcuts | Add-Member -NotePropertyName 'quick_add' `
+                -NotePropertyValue $DesiredQuickAdd -Force
+
+            $todoistSettings | ConvertTo-Json -Depth 10 |
+                Set-Content $TodoistSettingsFile -Encoding UTF8
+            Write-Host "  Set quick_add = $DesiredQuickAdd (was: $current)" -ForegroundColor Green
+            Write-Host "  Frees CTRL+SPACE for WezTerm leader. Relaunch Todoist to apply." -ForegroundColor Green
+        }
+    }
+}
+
+# -----------------------------------------------------------------------------
+# 7. Private memory repo (ai-partner-memories)
+# -----------------------------------------------------------------------------
+Write-Host "[7/9] Private memory repo..." -ForegroundColor Yellow
 
 $skipMemoryLink = $false
 
@@ -446,9 +496,9 @@ if (-not $skipMemoryLink) {
 }
 
 # -----------------------------------------------------------------------------
-# 7. Memory sync scheduled task
+# 8. Memory sync scheduled task
 # -----------------------------------------------------------------------------
-Write-Host "[7/8] Memory sync scheduled task..." -ForegroundColor Yellow
+Write-Host "[8/9] Memory sync scheduled task..." -ForegroundColor Yellow
 
 $SyncTaskName     = "AIPartnerMemorySync"
 $SyncScriptPath   = "$RepoRoot\scripts\sync-memories.ps1"
@@ -475,10 +525,10 @@ if (-not (Test-Path $SyncScriptPath)) {
 }
 
 # -----------------------------------------------------------------------------
-# 8. WSL bootstrap (optional)
+# 9. WSL bootstrap (optional)
 # -----------------------------------------------------------------------------
 if (-not $SkipWSL) {
-    Write-Host "[8/8] Running WSL bootstrap..." -ForegroundColor Yellow
+    Write-Host "[9/9] Running WSL bootstrap..." -ForegroundColor Yellow
     $wslScript = "$RepoRoot\scripts\bootstrap-wsl.sh"
 
     $wslAvailable = Get-Command wsl -ErrorAction SilentlyContinue
@@ -494,7 +544,7 @@ if (-not $SkipWSL) {
         Write-Host "  WSL not available. Skipping." -ForegroundColor DarkGray
     }
 } else {
-    Write-Host "[8/8] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
+    Write-Host "[9/9] WSL bootstrap skipped (-SkipWSL)" -ForegroundColor DarkGray
 }
 
 Write-Host ""
