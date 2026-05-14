@@ -368,6 +368,60 @@ register_session_end_hook() {
     echo "  Registered SessionEnd hook: $script_path"
 }
 
+# UserPromptSubmit hook registration. Same idempotent-by-filename pattern as
+# the SessionStart variant above; parallel function rather than parameterising.
+register_user_prompt_submit_hook() {
+    local script_path="$1"
+    local timeout="$2"
+    local status_msg="$3"
+
+    if [ ! -f "$script_path" ]; then
+        echo "  WARN: $script_path not found; skipping hook."
+        return 0
+    fi
+    if ! command -v jq &>/dev/null; then
+        echo "  (jq not installed — skipping UserPromptSubmit hook for $(basename "$script_path"))"
+        return 0
+    fi
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        echo '{}' > "$SETTINGS_FILE"
+    fi
+
+    local leaf
+    leaf="$(basename "$script_path")"
+    local cmd="bash $script_path"
+
+    local already
+    already="$(jq --arg leaf "$leaf" '
+        (.hooks.UserPromptSubmit // [])
+        | map(.hooks // [])
+        | flatten
+        | map(.command // "")
+        | any(contains($leaf))
+    ' "$SETTINGS_FILE")"
+
+    if [ "$already" = "true" ]; then
+        echo "  UserPromptSubmit hook already registered: $leaf"
+        return 0
+    fi
+
+    local tmp
+    tmp="$(mktemp)"
+    jq --arg cmd "$cmd" --argjson timeout "$timeout" --arg msg "$status_msg" '
+        .hooks //= {}
+        | .hooks.UserPromptSubmit //= []
+        | .hooks.UserPromptSubmit += [{
+            hooks: [{
+                type: "command",
+                command: $cmd,
+                timeout: $timeout,
+                statusMessage: $msg
+            }]
+          }]
+    ' "$SETTINGS_FILE" > "$tmp" && mv "$tmp" "$SETTINGS_FILE"
+    echo "  Registered UserPromptSubmit hook: $script_path"
+}
+
 # Drift-check hook: fetches origin on this repo so Claude can offer a
 # fast-forward pull at session start instead of running into mid-edit
 # stash/replay from weekend drift. Mirror of the Windows-side hook.
@@ -398,6 +452,14 @@ register_session_end_hook \
     "$REPO_ROOT/scripts/encryption/encrypt-memory.sh" \
     30 \
     "Re-encrypting memory bundles..."
+
+# Time-awareness hook: injects current local time as additionalContext on
+# every prompt. Closes the gap where Claude sees the date but not the hour.
+# Tight timeout because the script is a single date call.
+register_user_prompt_submit_hook \
+    "$REPO_ROOT/scripts/user-prompt-time.sh" \
+    5 \
+    "Injecting current time..."
 
 # -----------------------------------------------------------------------------
 # Private memory repo (ai-partner-memories)

@@ -289,6 +289,64 @@ function Register-SessionEndHook {
     return $true
 }
 
+# UserPromptSubmit hook registration. Same idempotent-by-filename pattern as
+# Register-SessionStartHook above; parallel function rather than parameterizing
+# the existing one to keep the diff minimal.
+function Register-UserPromptSubmitHook {
+    param(
+        $Settings,
+        [string]$ScriptPath,
+        [int]$Timeout,
+        [string]$StatusMessage
+    )
+
+    if (-not (Test-Path $ScriptPath)) {
+        Write-Host "  WARN: $ScriptPath not found; skipping hook." -ForegroundColor Yellow
+        return $false
+    }
+
+    $scriptLeaf = Split-Path -Leaf $ScriptPath
+    $escapedLeaf = [regex]::Escape($scriptLeaf)
+
+    $alreadyRegistered = $false
+    if (($Settings.PSObject.Properties.Name -contains 'hooks') -and $Settings.hooks -and
+        ($Settings.hooks.PSObject.Properties.Name -contains 'UserPromptSubmit') -and $Settings.hooks.UserPromptSubmit) {
+        foreach ($entry in @($Settings.hooks.UserPromptSubmit)) {
+            foreach ($h in @($entry.hooks)) {
+                if ($h.command -and ($h.command -match $escapedLeaf)) {
+                    $alreadyRegistered = $true
+                }
+            }
+        }
+    }
+
+    if ($alreadyRegistered) {
+        Write-Host "  UserPromptSubmit hook already registered: $scriptLeaf" -ForegroundColor Green
+        return $false
+    }
+
+    $hookCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
+    $hookInner = New-Object PSObject -Property @{
+        type          = 'command'
+        command       = $hookCmd
+        timeout       = $Timeout
+        statusMessage = $StatusMessage
+    }
+    $hookEntry = New-Object PSObject -Property @{ hooks = @($hookInner) }
+
+    if (-not ($Settings.PSObject.Properties.Name -contains 'hooks') -or -not $Settings.hooks) {
+        $Settings | Add-Member -NotePropertyName 'hooks' -NotePropertyValue (New-Object PSObject) -Force
+    }
+    $existingList = @()
+    if (($Settings.hooks.PSObject.Properties.Name -contains 'UserPromptSubmit') -and $Settings.hooks.UserPromptSubmit) {
+        $existingList = @($Settings.hooks.UserPromptSubmit)
+    }
+    $Settings.hooks | Add-Member -NotePropertyName 'UserPromptSubmit' -NotePropertyValue ($existingList + $hookEntry) -Force
+
+    Write-Host "  Registered UserPromptSubmit hook: $ScriptPath" -ForegroundColor Green
+    return $true
+}
+
 # Drift-check hook: fetches origin on this repo so Claude can offer a
 # fast-forward pull at session start instead of running into mid-edit
 # stash/replay from weekend drift.
@@ -322,6 +380,16 @@ if (Register-SessionEndHook -Settings $settings `
         -ScriptPath "$RepoRoot\scripts\encryption\encrypt-memory.ps1" `
         -Timeout 30 `
         -StatusMessage 'Re-encrypting memory bundles...') {
+    $settingsDirty = $true
+}
+
+# Time-awareness hook: injects current local time as additionalContext on
+# every prompt. Closes the gap where Claude sees the date but not the hour.
+# Tight timeout because the script is a single Get-Date call.
+if (Register-UserPromptSubmitHook -Settings $settings `
+        -ScriptPath "$RepoRoot\scripts\user-prompt-time.ps1" `
+        -Timeout 5 `
+        -StatusMessage 'Injecting current time...') {
     $settingsDirty = $true
 }
 
