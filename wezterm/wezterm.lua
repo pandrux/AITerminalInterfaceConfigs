@@ -47,6 +47,14 @@ local config = wezterm.config_builder()
 config.leader = { key = 'Space', mods = 'CTRL', timeout_milliseconds = 1000 }
 
 -- =============================================================================
+-- DEFAULT SHELL
+-- WezTerm's built-in default on Windows is cmd.exe, which skips the PowerShell
+-- profile (shell/windows-additions.ps1 — AI pane tinting, update-ai-win, etc.).
+-- Spawn PowerShell so default panes get the profile additions.
+-- =============================================================================
+config.default_prog = { 'powershell.exe', '-NoLogo' }
+
+-- =============================================================================
 -- APPEARANCE
 -- =============================================================================
 config.color_scheme = 'AdventureTime'
