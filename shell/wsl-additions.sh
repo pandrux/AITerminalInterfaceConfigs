@@ -28,7 +28,7 @@ export NVM_DIR="$HOME/.nvm"
 # -----------------------------------------------------------------------------
 # AI pane tinting
 # Wraps each AI CLI so its WezTerm pane background shifts while the CLI runs:
-#   Claude → warm rust   Codex → teal   Gemini → blue
+#   Claude → dark wine   Codex → purple   Gemini → green
 # Uses OSC 11 (set pane background) / OSC 111 (reset) — per-pane, passes
 # through the WSL boundary. Only tints real interactive sessions (stdin AND
 # stdout on a tty), so -p one-shots and pipes (compare-ai, watch-log) are
@@ -49,9 +49,9 @@ _ai_tint() {
     fi
 }
 
-claude() { _ai_tint '#2a1810' command claude "$@"; }
-codex()  { _ai_tint '#0c211b' command codex  "$@"; }
-gemini() { _ai_tint '#0e1a2b' command gemini "$@"; }
+claude() { _ai_tint '#370617' command claude "$@"; }
+codex()  { _ai_tint '#7209b7' command codex  "$@"; }
+gemini() { _ai_tint '#007f5f' command gemini "$@"; }
 
 # Recovery if a pane ever gets stuck tinted (e.g. terminal killed mid-session)
 alias untint='printf "\033]111\007"'

@@ -9,7 +9,7 @@ $RepoRoot = Split-Path -Parent $WindowsAdditionsDir
 # -----------------------------------------------------------------------------
 # AI pane tinting — Windows counterpart of the wrappers in wsl-additions.sh
 # Shifts the WezTerm pane background while an AI CLI runs, resets on exit:
-#   Claude → warm rust   Codex → teal   Gemini → blue
+#   Claude → dark wine   Codex → purple   Gemini → green
 # OSC 11 sets the pane background, OSC 111 resets. Only tints interactive
 # sessions (no redirected stdin/stdout), so piped/one-shot use is unaffected.
 # -----------------------------------------------------------------------------
@@ -38,9 +38,9 @@ function _Invoke-AiTinted {
     }
 }
 
-function claude { _Invoke-AiTinted -Color '#2a1810' -Name 'claude' -CliArgs $args }
-function codex  { _Invoke-AiTinted -Color '#0c211b' -Name 'codex'  -CliArgs $args }
-function gemini { _Invoke-AiTinted -Color '#0e1a2b' -Name 'gemini' -CliArgs $args }
+function claude { _Invoke-AiTinted -Color '#370617' -Name 'claude' -CliArgs $args }
+function codex  { _Invoke-AiTinted -Color '#7209b7' -Name 'codex'  -CliArgs $args }
+function gemini { _Invoke-AiTinted -Color '#007f5f' -Name 'gemini' -CliArgs $args }
 
 # Recovery if a pane ever gets stuck tinted
 function untint { [Console]::Write("$([char]27)]111$([char]7)") }
