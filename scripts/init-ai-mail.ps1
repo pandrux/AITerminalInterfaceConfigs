@@ -9,8 +9,13 @@
 #     <agent>/             <- one inbox per agent
 #       archive/.gitkeep   <- processed messages land here
 #
+# Also wires each agent's instruction file (CLAUDE.md, AGENTS.md, GEMINI.md)
+# in the project root: creates it with the mail section if missing, appends
+# the section at the bottom if the file exists without one.
+#
 # Idempotent: existing folders and an existing mail/README.md are left alone,
-# so re-running against a live mailbox never destroys messages.
+# so re-running against a live mailbox never destroys messages; instruction
+# files that already reference mail/README.md are left untouched.
 #
 # Usage:
 #   .\init-ai-mail.ps1                          # mail/ in current directory, claude + codex
@@ -75,20 +80,55 @@ if (Test-Path $ReadmeTarget) {
     Write-Host "  Created mail/README.md from template" -ForegroundColor Green
 }
 
-# --- Suggested wiring (printed, never applied automatically) -----------------
+# --- Agent instruction files --------------------------------------------------
+# Each agent's CLI auto-loads an instruction file from the project root; wire
+# the mail convention into it. Create the file if the project doesn't have one
+# yet; append at the bottom if it does. A file that already references
+# mail/README.md is assumed wired and left alone.
+$InstructionFiles = @{
+    claude = "CLAUDE.md"
+    codex  = "AGENTS.md"
+    gemini = "GEMINI.md"
+}
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+$ProjectName = Split-Path $ProjectRoot -Leaf
+
 Write-Host ""
-Write-Host "Done. Suggested additions (not applied automatically):" -ForegroundColor Cyan
+foreach ($agent in $Agents) {
+    if (-not $InstructionFiles.ContainsKey($agent)) {
+        Write-Host "  WARN: no instruction file known for agent '$agent'; wire its docs manually." -ForegroundColor Yellow
+        continue
+    }
+    $fileName = $InstructionFiles[$agent]
+    $filePath = Join-Path $ProjectRoot $fileName
+
+    $blurb = @"
+## AI mail
+
+- Check ``mail/$agent/`` for messages; protocol in ``mail/README.md``.
+  Archive messages after acting on them. Send by writing into the
+  recipient's folder under ``mail/``.
+"@
+
+    $existing = $null
+    if (Test-Path $filePath) {
+        $existing = Get-Content $filePath -Raw -Encoding UTF8
+    }
+
+    if ($existing -and ($existing -match 'mail/README\.md')) {
+        Write-Host "  [OK] $fileName already references mail/README.md -- left untouched" -ForegroundColor Green
+    } elseif ($existing) {
+        $sep = if ($existing.EndsWith("`n")) { "`n" } else { "`n`n" }
+        [System.IO.File]::AppendAllText($filePath, "$sep$blurb`n", $Utf8NoBom)
+        Write-Host "  Appended mail section to existing $fileName" -ForegroundColor Green
+    } else {
+        [System.IO.File]::WriteAllText($filePath, "# $ProjectName`n`n$blurb`n", $Utf8NoBom)
+        Write-Host "  Created $fileName with mail section" -ForegroundColor Green
+    }
+}
+
 Write-Host ""
-Write-Host "  CLAUDE.md:" -ForegroundColor Yellow
-Write-Host "    - Check ``mail/claude/`` for messages; protocol in ``mail/README.md``."
-Write-Host "      Archive messages after acting on them. Send by writing into the"
-Write-Host "      recipient's folder under ``mail/``."
-Write-Host ""
-Write-Host "  AGENTS.md (Codex):" -ForegroundColor Yellow
-Write-Host "    - Check ``mail/codex/`` for messages; protocol in ``mail/README.md``."
-Write-Host "      Archive messages after acting on them. Send by writing into the"
-Write-Host "      recipient's folder under ``mail/``."
-Write-Host ""
+Write-Host "Done." -ForegroundColor Cyan
 Write-Host "  (Claude Code also gets unread-inbox notification automatically at"
 Write-Host "  session start via the session-start-mail hook, if bootstrapped.)"
 Write-Host ""
