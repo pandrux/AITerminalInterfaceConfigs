@@ -367,6 +367,16 @@ if (Register-SessionStartHook -Settings $settings `
     $settingsDirty = $true
 }
 
+# Mail hook: notifies Claude at session start when the project's AI-to-AI
+# mailbox (mail/claude/) contains unprocessed messages. No-op in projects
+# without a mailbox. Create mailboxes with scripts/init-ai-mail.ps1.
+if (Register-SessionStartHook -Settings $settings `
+        -ScriptPath "$RepoRoot\scripts\session-start-mail.ps1" `
+        -Timeout 10 `
+        -StatusMessage 'Checking AI mailbox for unread messages...') {
+    $settingsDirty = $true
+}
+
 # Memory encryption hooks: decrypt at SessionStart, re-encrypt at SessionEnd.
 # Requires gpg on PATH and per-machine setup via setup-machine.ps1.
 # See scripts/encryption/README.md for the full design + threat model.

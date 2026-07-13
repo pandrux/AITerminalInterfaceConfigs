@@ -439,6 +439,15 @@ register_session_start_hook \
     10 \
     "Loading work context if Category: work..."
 
+# Mail hook: notifies Claude at session start when the project's AI-to-AI
+# mailbox (mail/claude/) contains unprocessed messages. No-op in projects
+# without a mailbox. Mirror of the Windows-side hook; create mailboxes with
+# scripts/init-ai-mail.ps1.
+register_session_start_hook \
+    "$REPO_ROOT/scripts/session-start-mail.sh" \
+    10 \
+    "Checking AI mailbox for unread messages..."
+
 # Memory encryption hooks: WSL wrappers that delegate to the Windows-side
 # scripts via powershell.exe interop. DPAPI is Windows-only; the encrypted
 # blob lives on NTFS, so duplicating crypto in WSL adds no value.

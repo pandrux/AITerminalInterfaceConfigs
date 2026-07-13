@@ -169,12 +169,33 @@ AITerminalInterfaceConfigs/
 |   +-- statusline.py            # Claude Code statusline (symlinked into ~/.claude/)
 +-- .claude/
 |   +-- settings.json            # Repo-scoped Claude Code permissions
++-- templates/
+|   +-- mail/README.md           # AI-to-AI mail protocol doc (project template)
 +-- skills/                      # Reusable AI workflows (placeholder)
 +-- docs/                        # Session notes, setup transcripts
 +-- .gitattributes
 +-- .gitignore
 +-- README.md
 ```
+
+## AI-to-AI Mail
+
+Projects where Claude and Codex collaborate use a file-based mailbox
+convention: `mail/<agent>/` is that agent's inbox; processed messages move to
+`mail/<agent>/archive/`. Protocol doc: `templates/mail/README.md`
+(PTCRailroadSim is the reference implementation).
+
+Set up a new project's mailboxes from any PowerShell prompt:
+
+```powershell
+init-ai-mail                      # mail/ in current directory, claude + codex
+init-ai-mail -Path D:\AI\Projects\X -Agents claude,codex,gemini
+```
+
+A SessionStart hook (`session-start-mail.ps1` / `.sh`, registered by both
+bootstraps) notifies Claude Code at session start when its inbox has
+unprocessed messages, so per-project CLAUDE.md wiring is optional. Codex has
+no hook equivalent — its AGENTS.md should tell it to check `mail/codex/`.
 
 ## Customization Per Machine
 

@@ -52,3 +52,9 @@ function untint { [Console]::Write("$([char]27)]111$([char]7)") }
 function update-ai-win {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$RepoRoot\scripts\update-windows.ps1" @args
 }
+
+# Instantiate the AI-to-AI mail structure in a project (default: cwd).
+# Usage: init-ai-mail [-Path <projectRoot>] [-Agents claude,codex,...]
+function init-ai-mail {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$RepoRoot\scripts\init-ai-mail.ps1" @args
+}
