@@ -216,9 +216,9 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Claude Code statusline + settings
+# Claude Code statusline + skills + settings
 # -----------------------------------------------------------------------------
-echo "[7/8] Claude Code statusline..."
+echo "[7/8] Claude Code statusline + skills..."
 
 CLAUDE_DIR="$HOME/.claude"
 mkdir -p "$CLAUDE_DIR"
@@ -236,6 +236,22 @@ if [ -L "$STATUSLINE_TARGET" ] || [ -f "$STATUSLINE_TARGET" ]; then
 else
     ln -s "$STATUSLINE_SOURCE" "$STATUSLINE_TARGET"
     echo "  Linked $STATUSLINE_TARGET -> $STATUSLINE_SOURCE"
+fi
+
+# Skills: link the whole directory so skills added to the repo reach every
+# machine on git pull, without re-running bootstrap.
+SKILLS_TARGET="$CLAUDE_DIR/skills"
+SKILLS_SOURCE="$REPO_ROOT/skills"
+
+if [ -L "$SKILLS_TARGET" ]; then
+    echo "  skills already linked"
+elif [ -e "$SKILLS_TARGET" ]; then
+    mv "$SKILLS_TARGET" "$SKILLS_TARGET.bak-$(date +%Y%m%d-%H%M)"
+    ln -s "$SKILLS_SOURCE" "$SKILLS_TARGET"
+    echo "  Backed up existing skills dir and linked repo version"
+else
+    ln -s "$SKILLS_SOURCE" "$SKILLS_TARGET"
+    echo "  Linked $SKILLS_TARGET -> $SKILLS_SOURCE"
 fi
 
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"

@@ -19,7 +19,8 @@ $expected = @(
     @{ Label = "CLAUDE.md (Claude global)";  Path = "$env:USERPROFILE\.claude\CLAUDE.md";              Target = "$MemoryRepoPath\CLAUDE.md" },
     @{ Label = "AGENTS.md (Codex global)";   Path = "$env:USERPROFILE\.codex\AGENTS.md";               Target = "$MemoryRepoPath\AGENTS.md" },
     @{ Label = "WezTerm config";             Path = "$env:USERPROFILE\.config\wezterm\wezterm.lua";    Target = "$RepoRoot\wezterm\wezterm.lua" },
-    @{ Label = "statusline.py";              Path = "$env:USERPROFILE\.claude\statusline.py";          Target = "$RepoRoot\claude\statusline.py" }
+    @{ Label = "statusline.py";              Path = "$env:USERPROFILE\.claude\statusline.py";          Target = "$RepoRoot\claude\statusline.py" },
+    @{ Label = "Claude skills";              Path = "$env:USERPROFILE\.claude\skills";                 Target = "$RepoRoot\skills" }
 )
 
 Write-Host ""

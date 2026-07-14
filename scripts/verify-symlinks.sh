@@ -74,6 +74,7 @@ check_link "AGENTS.md (Codex global)"  "$HOME/.codex/AGENTS.md"  "$MEMORY_REPO_P
 # AITerminalInterfaceConfigs (WSL-side)
 check_link "Zellij config"             "$HOME/.config/zellij/config.kdl" "$REPO_ROOT/zellij/config.kdl"
 check_link "statusline.py"             "$HOME/.claude/statusline.py"     "$REPO_ROOT/claude/statusline.py"
+check_link "Claude skills"             "$HOME/.claude/skills"            "$REPO_ROOT/skills"
 
 # Zellij layouts -- one per file in the repo
 for layout in "$REPO_ROOT"/zellij/layouts/*.kdl; do

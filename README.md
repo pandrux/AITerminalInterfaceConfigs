@@ -171,7 +171,8 @@ AITerminalInterfaceConfigs/
 |   +-- settings.json            # Repo-scoped Claude Code permissions
 +-- templates/
 |   +-- mail/README.md           # AI-to-AI mail protocol doc (project template)
-+-- skills/                      # Reusable AI workflows (placeholder)
++-- skills/                      # Claude Code skills (symlinked into ~/.claude/skills)
+|   +-- ai-mail/SKILL.md         # Work the AI-to-AI mail system
 +-- docs/                        # Session notes, setup transcripts
 +-- .gitattributes
 +-- .gitignore

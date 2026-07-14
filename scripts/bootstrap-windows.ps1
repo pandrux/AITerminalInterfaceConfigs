@@ -106,9 +106,9 @@ foreach ($tool in $tools) {
 }
 
 # -----------------------------------------------------------------------------
-# 4. Claude Code statusline + settings
+# 4. Claude Code statusline + skills + settings
 # -----------------------------------------------------------------------------
-Write-Host "[4/9] Claude Code statusline..." -ForegroundColor Yellow
+Write-Host "[4/9] Claude Code statusline + skills..." -ForegroundColor Yellow
 
 $ClaudeDir = "$env:USERPROFILE\.claude"
 $StatuslineTarget = "$ClaudeDir\statusline.py"
@@ -126,6 +126,29 @@ if (Test-Path $StatuslineTarget) {
 
 New-Item -ItemType SymbolicLink -Path $StatuslineTarget -Target $StatuslineSource | Out-Null
 Write-Host "  Linked: $StatuslineTarget -> $StatuslineSource" -ForegroundColor Green
+
+# Skills: link the whole directory so skills added to the repo reach every
+# machine on git pull, without re-running bootstrap.
+$SkillsTarget = "$ClaudeDir\skills"
+$SkillsSource = "$RepoRoot\skills"
+
+$skillsLinked = $false
+if (Test-Path $SkillsTarget) {
+    $skillsItem = Get-Item $SkillsTarget -Force
+    $actualTarget = @($skillsItem.Target)[0]
+    if ($skillsItem.LinkType -eq "SymbolicLink" -and $actualTarget -eq $SkillsSource) {
+        Write-Host "  skills already linked" -ForegroundColor Green
+        $skillsLinked = $true
+    } else {
+        $backup = "$SkillsTarget.bak-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+        Move-Item $SkillsTarget $backup
+        Write-Host "  Backed up existing skills to $backup"
+    }
+}
+if (-not $skillsLinked) {
+    New-Item -ItemType SymbolicLink -Path $SkillsTarget -Target $SkillsSource | Out-Null
+    Write-Host "  Linked: $SkillsTarget -> $SkillsSource" -ForegroundColor Green
+}
 
 # Patch settings.json to register the statusLine command (PS 5.1-compatible)
 $SettingsFile = "$ClaudeDir\settings.json"
