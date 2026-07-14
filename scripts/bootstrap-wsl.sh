@@ -254,6 +254,22 @@ else
     echo "  Linked $SKILLS_TARGET -> $SKILLS_SOURCE"
 fi
 
+# Third-party Claude Code plugins (user scope). Guarded checks keep this
+# idempotent; requires the claude CLI on PATH.
+if command -v claude >/dev/null 2>&1; then
+    if ! claude plugin marketplace list 2>/dev/null | grep -q 'understand-anything'; then
+        claude plugin marketplace add Egonex-AI/Understand-Anything
+    fi
+    if ! claude plugin list 2>/dev/null | grep -q 'understand-anything'; then
+        claude plugin install understand-anything
+        echo "  Plugin installed: understand-anything"
+    else
+        echo "  Plugin already installed: understand-anything"
+    fi
+else
+    echo "  WARN: claude CLI not on PATH; skipping plugin installs."
+fi
+
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 # Prefer /usr/bin/python3 over anything `command -v` finds — the ai-venv
 # pptx environment may be on PATH and we don't want statusline tied to it.

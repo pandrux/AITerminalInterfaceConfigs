@@ -150,6 +150,24 @@ if (-not $skillsLinked) {
     Write-Host "  Linked: $SkillsTarget -> $SkillsSource" -ForegroundColor Green
 }
 
+# Third-party Claude Code plugins (user scope). Guarded checks keep this
+# idempotent; requires the claude CLI on PATH.
+if (Get-Command claude -ErrorAction SilentlyContinue) {
+    $marketplaces = claude plugin marketplace list 2>$null | Out-String
+    if ($marketplaces -notmatch 'understand-anything') {
+        claude plugin marketplace add Egonex-AI/Understand-Anything
+    }
+    $plugins = claude plugin list 2>$null | Out-String
+    if ($plugins -notmatch 'understand-anything') {
+        claude plugin install understand-anything
+        Write-Host "  Plugin installed: understand-anything" -ForegroundColor Green
+    } else {
+        Write-Host "  Plugin already installed: understand-anything" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  WARN: claude CLI not on PATH; skipping plugin installs." -ForegroundColor Yellow
+}
+
 # Patch settings.json to register the statusLine command (PS 5.1-compatible)
 $SettingsFile = "$ClaudeDir\settings.json"
 $settings = $null
