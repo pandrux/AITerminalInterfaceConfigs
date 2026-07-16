@@ -74,10 +74,11 @@ $tools = @(
     @{ Name = "Python 3.13"; Cmd = "python";  Install = "winget install Python.Python.3.13" },
     @{ Name = "Cursor IDE";  Cmd = "cursor";  Install = "winget install Anysphere.Cursor" },
     @{ Name = "Pandoc";      Cmd = "pandoc";  Install = "winget install JohnMacFarlane.Pandoc" },
-    @{ Name = "GnuPG";       Cmd = "gpg";     Install = "winget install GnuPG.GnuPG" }
+    @{ Name = "GnuPG";       Cmd = "gpg";     Install = "winget install GnuPG.GnuPG" },
+    @{ Name = "GitHub CLI";  Cmd = "gh";      Install = "winget install GitHub.cli" }
 )
 
-$autoInstall = @("Cursor IDE", "Pandoc", "GnuPG")  # tools we auto-install via winget if missing
+$autoInstall = @("Cursor IDE", "Pandoc", "GnuPG", "GitHub CLI")  # tools we auto-install via winget if missing
 
 foreach ($tool in $tools) {
     $found = Get-Command $tool.Cmd -ErrorAction SilentlyContinue
