@@ -266,6 +266,15 @@ if command -v claude >/dev/null 2>&1; then
     else
         echo "  Plugin already installed: understand-anything"
     fi
+    if ! claude plugin marketplace list 2>/dev/null | grep -q 'anthropic-agent-skills'; then
+        claude plugin marketplace add anthropics/skills
+    fi
+    if ! claude plugin list 2>/dev/null | grep -q 'document-skills'; then
+        claude plugin install document-skills@anthropic-agent-skills
+        echo "  Plugin installed: document-skills (docx/pptx/xlsx/pdf)"
+    else
+        echo "  Plugin already installed: document-skills"
+    fi
 else
     echo "  WARN: claude CLI not on PATH; skipping plugin installs."
 fi

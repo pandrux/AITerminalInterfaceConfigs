@@ -165,6 +165,15 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
     } else {
         Write-Host "  Plugin already installed: understand-anything" -ForegroundColor Green
     }
+    if ($marketplaces -notmatch 'anthropic-agent-skills') {
+        claude plugin marketplace add anthropics/skills
+    }
+    if ($plugins -notmatch 'document-skills') {
+        claude plugin install document-skills@anthropic-agent-skills
+        Write-Host "  Plugin installed: document-skills (docx/pptx/xlsx/pdf)" -ForegroundColor Green
+    } else {
+        Write-Host "  Plugin already installed: document-skills" -ForegroundColor Green
+    }
 } else {
     Write-Host "  WARN: claude CLI not on PATH; skipping plugin installs." -ForegroundColor Yellow
 }
