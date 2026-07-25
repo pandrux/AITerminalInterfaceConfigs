@@ -29,12 +29,17 @@ export NVM_DIR="$HOME/.nvm"
 # AI pane tinting
 # Wraps each AI CLI so its WezTerm pane background shifts while the CLI runs:
 #   Claude → dark wine   Codex → deep purple   Gemini → dark navy
-# Uses OSC 11 (set pane background) / OSC 111 (reset) — per-pane, passes
-# through the WSL boundary. Only tints real interactive sessions (stdin AND
-# stdout on a tty), so -p one-shots and pipes (compare-ai, watch-log) are
-# unaffected. Caveat: zellij/tmux may swallow OSC 11, so inside those the
-# tint may not appear; plain WezTerm panes (Leader+a workbench) work.
+# Uses OSC 11 (set pane background) — per-pane, passes through the WSL
+# boundary. ConPTY on the Windows side swallows OSC 111 (reset-background),
+# so "reset" re-sets the scheme's own background via OSC 11 instead. Only
+# tints real interactive sessions (stdin AND stdout on a tty), so -p
+# one-shots and pipes (compare-ai, watch-log) are unaffected. Caveat:
+# zellij/tmux may swallow OSC 11, so inside those the tint may not appear;
+# plain WezTerm panes (Leader+a workbench) work.
 # -----------------------------------------------------------------------------
+
+# Must match config.color_scheme in wezterm/wezterm.lua (AdventureTime background)
+_AI_TINT_RESET='#1f1d45'
 
 _ai_tint() {
     local color="$1"; shift
@@ -42,7 +47,7 @@ _ai_tint() {
         printf '\033]11;%s\007' "$color"
         "$@"
         local rc=$?
-        printf '\033]111\007'
+        printf '\033]11;%s\007' "$_AI_TINT_RESET"
         return $rc
     else
         "$@"
@@ -54,7 +59,7 @@ codex()  { _ai_tint '#240046' command codex  "$@"; }
 gemini() { _ai_tint '#001524' command gemini "$@"; }
 
 # Recovery if a pane ever gets stuck tinted (e.g. terminal killed mid-session)
-alias untint='printf "\033]111\007"'
+alias untint='printf "\033]11;%s\007" "$_AI_TINT_RESET"'
 
 # -----------------------------------------------------------------------------
 # AI CLI shortcuts

@@ -10,9 +10,14 @@ $RepoRoot = Split-Path -Parent $WindowsAdditionsDir
 # AI pane tinting — Windows counterpart of the wrappers in wsl-additions.sh
 # Shifts the WezTerm pane background while an AI CLI runs, resets on exit:
 #   Claude → dark wine   Codex → deep purple   Gemini → dark navy
-# OSC 11 sets the pane background, OSC 111 resets. Only tints interactive
+# OSC 11 sets the pane background. ConPTY (conhost) swallows OSC 111
+# (reset-background) before it reaches WezTerm, so "reset" re-sets the
+# scheme's own background via OSC 11 instead. Only tints interactive
 # sessions (no redirected stdin/stdout), so piped/one-shot use is unaffected.
 # -----------------------------------------------------------------------------
+
+# Must match config.color_scheme in wezterm/wezterm.lua (AdventureTime background)
+$AiTintResetColor = '#1f1d45'
 
 function _Invoke-AiTinted {
     param(
@@ -34,7 +39,7 @@ function _Invoke-AiTinted {
         & $app @CliArgs
     }
     finally {
-        if ($interactive) { [Console]::Write("$esc]111$bel") }
+        if ($interactive) { [Console]::Write("$esc]11;$AiTintResetColor$bel") }
     }
 }
 
@@ -43,7 +48,7 @@ function codex  { _Invoke-AiTinted -Color '#240046' -Name 'codex'  -CliArgs $arg
 function gemini { _Invoke-AiTinted -Color '#001524' -Name 'gemini' -CliArgs $args }
 
 # Recovery if a pane ever gets stuck tinted
-function untint { [Console]::Write("$([char]27)]111$([char]7)") }
+function untint { [Console]::Write("$([char]27)]11;$AiTintResetColor$([char]7)") }
 
 # -----------------------------------------------------------------------------
 # AI CLI shortcuts
