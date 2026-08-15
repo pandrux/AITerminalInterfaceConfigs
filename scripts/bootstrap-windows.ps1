@@ -67,6 +67,12 @@ Write-Host "[3/9] Checking CLI tools..." -ForegroundColor Yellow
 
 $tools = @(
     @{ Name = "Claude Code"; Cmd = "claude";  Install = "npm install -g @anthropic-ai/claude-code" },
+    # Codex: update from a plain PowerShell window with ALL codex sessions
+    # closed (npm install -g @openai/codex@latest). The in-app `codex update`
+    # runs npm while codex.exe itself is running; Windows can't unlink a
+    # running exe, so npm hits EPERM, leaves the old version in place, and
+    # still prints "Update ran successfully". If an update is stuck, delete
+    # any orphaned %APPDATA%\npm\node_modules\@openai\.codex-* dirs first.
     @{ Name = "Codex CLI";   Cmd = "codex";   Install = "npm install -g @openai/codex" },
     @{ Name = "Gemini CLI";  Cmd = "gemini";  Install = "npm install -g @google/gemini-cli" },
     @{ Name = "Node.js";     Cmd = "node";    Install = "winget install OpenJS.NodeJS.LTS" },
