@@ -57,6 +57,9 @@ config.default_prog = { 'powershell.exe', '-NoLogo' }
 -- =============================================================================
 -- APPEARANCE
 -- =============================================================================
+-- NOTE: the AI pane tinting in shell/windows-additions.ps1 and
+-- shell/wsl-additions.sh restores this scheme's background (#1f1d45) after
+-- an AI CLI exits — update the reset color in both if the scheme changes.
 config.color_scheme = 'AdventureTime'
 config.font = wezterm.font 'JetBrains Mono'
 config.font_size = 11
