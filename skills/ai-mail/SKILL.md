@@ -17,6 +17,19 @@ agent's **inbox** — others write into it. Your inbox is `mail/claude/`.
 If the current directory is nested, walk up the ancestry to the nearest
 `mail/` directory (the session-start hook does the same).
 
+**Mailbox on a shared drive.** If the project root (or an ancestor) holds a
+`.ai-mail` pointer file, the mailbox lives elsewhere, typically a network
+share, and inboxes are named by person rather than agent:
+
+```
+root=P:\some\share\mail
+inbox=tom
+```
+
+Your inbox is then `<root>\<inbox>\`; the other person's inbox is a sibling
+under the same root. The session-start hook honors the pointer too. If the
+share is unreachable, say so; never fall back to a local mailbox.
+
 ## Check mail
 
 Unprocessed messages are the top-level `*.md` files in `mail/claude/`

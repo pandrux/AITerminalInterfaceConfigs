@@ -38,10 +38,33 @@ try {
 }
 if (-not $cwd) { exit 0 }
 
-# Nearest mail/claude/ on the ancestry wins.
+# Walk the cwd ancestry. At each level a .ai-mail pointer file is checked
+# first -- it names a mailbox that may live elsewhere (e.g. on a network
+# share) -- then the conventional mail\claude\ folder. Nearest hit wins.
+#
+# .ai-mail format, two key=value lines:
+#   root=P:\some\share\mail
+#   inbox=alice
 $inbox = $null
 $dir = $cwd
 while ($dir -and (Test-Path $dir)) {
+    $pointer = Join-Path $dir '.ai-mail'
+    if (Test-Path $pointer -PathType Leaf) {
+        $kv = @{}
+        foreach ($line in @(Get-Content $pointer -ErrorAction SilentlyContinue)) {
+            if ($line -match '^\s*([A-Za-z_]+)\s*=\s*(.+?)\s*$') { $kv[$matches[1]] = $matches[2] }
+        }
+        if ($kv.root -and $kv.inbox) {
+            # String-combine, not Join-Path: Join-Path throws when the root's
+            # drive letter is not mapped (share offline), and this hook must
+            # never spew at session start.
+            $candidate = [System.IO.Path]::Combine($kv.root, $kv.inbox)
+            if (Test-Path $candidate -PathType Container -ErrorAction SilentlyContinue) {
+                $inbox = $candidate
+                break
+            }
+        }
+    }
     $candidate = Join-Path $dir 'mail\claude'
     if (Test-Path $candidate -PathType Container) {
         $inbox = $candidate

@@ -198,6 +198,17 @@ bootstraps) notifies Claude Code at session start when its inbox has
 unprocessed messages, so per-project CLAUDE.md wiring is optional. Codex has
 no hook equivalent — its AGENTS.md should tell it to check `mail/codex/`.
 
+**Mailbox on a shared drive.** When two people each run Claude Code on one
+project and coordinate through a network share, the mailbox lives on the
+share with person-named inboxes (`-Agents tom,ryan`), and each local project
+root holds a `.ai-mail` pointer (`root=P:\share\mail`, `inbox=tom`). The
+hook checks for the pointer at each ancestry level before the conventional
+`mail\claude\` folder, and stays silent if the share is unreachable.
+Add the share's project folder to `permissions.additionalDirectories` (mapped
+drive letter, not UNC; Claude Code refuses UNC there) so writes into the other
+inbox do not prompt.
+Hook tests: `pwsh -NoProfile -File scripts\tests\session-start-mail.Tests.ps1`.
+
 ## Customization Per Machine
 
 Create `~/.config/local-overrides.sh` (gitignored) for machine-specific paths,
