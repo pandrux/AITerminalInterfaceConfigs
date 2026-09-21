@@ -15,3 +15,8 @@ Thumbs.db
 
 # Node
 node_modules/
+
+# Claude Code's account-synced skills cache. It regenerates this under
+# ~/.claude/skills/synced/, which resolves into this repo once bootstrap
+# symlinks ~/.claude/skills -> skills/. Per-machine, not ours to version.
+skills/synced/
