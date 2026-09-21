@@ -321,12 +321,19 @@ function Register-SessionStartHook {
 # UserPromptSubmit hook registration. Same idempotent-by-filename pattern as
 # Register-SessionStartHook above; parallel function rather than parameterizing
 # the existing one to keep the diff minimal.
+#
+# Accepts .cmd/.bat scripts as well as .ps1. Batch files are invoked directly
+# (cmd.exe starts in ~50ms) instead of through powershell.exe, whose cold start
+# on AV-heavy work machines was hitting the hook timeout on every prompt.
+# -Supersedes lists retired script leaf names; any existing entry that still
+# points at one is dropped, so re-running the bootstrap migrates old installs.
 function Register-UserPromptSubmitHook {
     param(
         $Settings,
         [string]$ScriptPath,
         [int]$Timeout,
-        [string]$StatusMessage
+        [string]$StatusMessage,
+        [string[]]$Supersedes = @()
     )
 
     if (-not (Test-Path $ScriptPath)) {
@@ -336,32 +343,7 @@ function Register-UserPromptSubmitHook {
 
     $scriptLeaf = Split-Path -Leaf $ScriptPath
     $escapedLeaf = [regex]::Escape($scriptLeaf)
-
-    $alreadyRegistered = $false
-    if (($Settings.PSObject.Properties.Name -contains 'hooks') -and $Settings.hooks -and
-        ($Settings.hooks.PSObject.Properties.Name -contains 'UserPromptSubmit') -and $Settings.hooks.UserPromptSubmit) {
-        foreach ($entry in @($Settings.hooks.UserPromptSubmit)) {
-            foreach ($h in @($entry.hooks)) {
-                if ($h.command -and ($h.command -match $escapedLeaf)) {
-                    $alreadyRegistered = $true
-                }
-            }
-        }
-    }
-
-    if ($alreadyRegistered) {
-        Write-Host "  UserPromptSubmit hook already registered: $scriptLeaf" -ForegroundColor Green
-        return $false
-    }
-
-    $hookCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
-    $hookInner = New-Object PSObject -Property @{
-        type          = 'command'
-        command       = $hookCmd
-        timeout       = $Timeout
-        statusMessage = $StatusMessage
-    }
-    $hookEntry = New-Object PSObject -Property @{ hooks = @($hookInner) }
+    $changed = $false
 
     if (-not ($Settings.PSObject.Properties.Name -contains 'hooks') -or -not $Settings.hooks) {
         $Settings | Add-Member -NotePropertyName 'hooks' -NotePropertyValue (New-Object PSObject) -Force
@@ -370,6 +352,57 @@ function Register-UserPromptSubmitHook {
     if (($Settings.hooks.PSObject.Properties.Name -contains 'UserPromptSubmit') -and $Settings.hooks.UserPromptSubmit) {
         $existingList = @($Settings.hooks.UserPromptSubmit)
     }
+
+    # Drop entries that still point at a retired script.
+    if ($Supersedes.Count -gt 0) {
+        $kept = @()
+        foreach ($entry in $existingList) {
+            $retired = $false
+            foreach ($h in @($entry.hooks)) {
+                foreach ($old in $Supersedes) {
+                    if ($h.command -and ($h.command -match [regex]::Escape($old))) { $retired = $true }
+                }
+            }
+            if ($retired) {
+                Write-Host "  Removed retired UserPromptSubmit hook: $($entry.hooks[0].command)" -ForegroundColor Yellow
+                $changed = $true
+            } else {
+                $kept += $entry
+            }
+        }
+        $existingList = $kept
+    }
+
+    $alreadyRegistered = $false
+    foreach ($entry in $existingList) {
+        foreach ($h in @($entry.hooks)) {
+            if ($h.command -and ($h.command -match $escapedLeaf)) {
+                $alreadyRegistered = $true
+            }
+        }
+    }
+
+    if ($alreadyRegistered) {
+        Write-Host "  UserPromptSubmit hook already registered: $scriptLeaf" -ForegroundColor Green
+        if ($changed) {
+            $Settings.hooks | Add-Member -NotePropertyName 'UserPromptSubmit' -NotePropertyValue $existingList -Force
+        }
+        return $changed
+    }
+
+    if ([IO.Path]::GetExtension($ScriptPath) -in '.cmd', '.bat') {
+        $hookCmd = "`"$ScriptPath`""
+    } else {
+        $hookCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
+    }
+    $hookInner = New-Object PSObject -Property @{
+        type          = 'command'
+        command       = $hookCmd
+        timeout       = $Timeout
+        statusMessage = $StatusMessage
+    }
+    $hookEntry = New-Object PSObject -Property @{ hooks = @($hookInner) }
+
     $Settings.hooks | Add-Member -NotePropertyName 'UserPromptSubmit' -NotePropertyValue ($existingList + $hookEntry) -Force
 
     Write-Host "  Registered UserPromptSubmit hook: $ScriptPath" -ForegroundColor Green
@@ -406,13 +439,16 @@ if (Register-SessionStartHook -Settings $settings `
     $settingsDirty = $true
 }
 
-# Time-awareness hook: injects current local time as additionalContext on
-# every prompt. Closes the gap where Claude sees the date but not the hour.
-# Tight timeout because the script is a single Get-Date call.
+# Time-awareness hook: injects current local time on every prompt. Closes the
+# gap where Claude sees the date but not the hour. A batch file rather than
+# PowerShell: powershell.exe cold start (1-5s on AV-heavy work machines) was
+# hitting the 5s hook timeout and blocking every prompt; cmd.exe runs in ~50ms.
+# -Supersedes retires the old .ps1 entry on machines that already have it.
 if (Register-UserPromptSubmitHook -Settings $settings `
-        -ScriptPath "$RepoRoot\scripts\user-prompt-time.ps1" `
+        -ScriptPath "$RepoRoot\scripts\user-prompt-time.cmd" `
         -Timeout 5 `
-        -StatusMessage 'Injecting current time...') {
+        -StatusMessage 'Injecting current time...' `
+        -Supersedes @('user-prompt-time.ps1')) {
     $settingsDirty = $true
 }
 

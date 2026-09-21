@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # user-prompt-time.sh - invoked by Claude Code UserPromptSubmit hook.
-# Bash/WSL twin of user-prompt-time.ps1.
+# Bash/WSL twin of user-prompt-time.cmd.
 #
 # Emits the current wall-clock time as additionalContext so the model has
 # fresh time-of-day awareness on every prompt. Designed to be fast: no stdin
