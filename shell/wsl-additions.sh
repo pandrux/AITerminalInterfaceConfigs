@@ -116,8 +116,16 @@ alias sync-off='tmux set-window-option synchronize-panes off && echo "Pane sync 
 # -----------------------------------------------------------------------------
 # AI Workbench launcher
 # -----------------------------------------------------------------------------
-alias ai='zellij --layout ai-workbench'
+# Launch from the AI root (grandparent of this repo: /mnt/c/AI, /mnt/d/AI, ...)
+# so the layout's panes open there; the layout itself hardcodes no drive.
+ai() { (cd "$_REPO_ROOT/../.." && zellij --layout ai-workbench "$@"); }
 alias update-ai='bash "$_REPO_ROOT/scripts/update.sh"'
+
+# Reconcile every repo under the AI root with origin/main (runs the
+# Windows-side script; see scripts/README-ai-sync.md)
+ai-sync() {
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$_REPO_ROOT/scripts/ai-sync.ps1")" "$@"
+}
 
 # -----------------------------------------------------------------------------
 # General productivity

@@ -11,7 +11,9 @@
 # different category overrides its parent workspace, even if the parent
 # declares Category: work.
 
-MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-/mnt/d/AI/ai-partner-memories}"
+# The memory repo sits beside Projects/ under the AI root this repo lives in
+# (/mnt/c/AI, /mnt/d/AI, ...); override with MEMORY_REPO_PATH.
+MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/ai-partner-memories}"
 WORK_CONTEXT_FILE="$MEMORY_REPO_PATH/work_context.md"
 
 # Hard dependency on jq for both parsing stdin and emitting safe JSON output.

@@ -6,10 +6,13 @@
 #
 # Usage:
 #   .\verify-symlinks.ps1
-#   .\verify-symlinks.ps1 -MemoryRepoPath "D:\AI\ai-partner-memories"
+#   .\verify-symlinks.ps1 -MemoryRepoPath "E:\Elsewhere\ai-partner-memories"
+#
+# MemoryRepoPath defaults to <AI root>\ai-partner-memories, where the AI root
+# is the grandparent of this repo (C:\AI, D:\AI, ...).
 
 param(
-    [string]$MemoryRepoPath = "D:\AI\ai-partner-memories"
+    [string]$MemoryRepoPath = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\..\ai-partner-memories")
 )
 
 $ErrorActionPreference = "Stop"

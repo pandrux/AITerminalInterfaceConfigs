@@ -448,7 +448,9 @@ register_user_prompt_submit_hook \
 # -----------------------------------------------------------------------------
 echo "[8/8] Private memory repo..."
 
-MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-/mnt/d/AI/ai-partner-memories}"
+# The memory repo sits beside Projects/ under the AI root this repo lives in
+# (/mnt/c/AI, /mnt/d/AI, ...); override with MEMORY_REPO_PATH.
+MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-$(cd "$REPO_ROOT/../.." && pwd)/ai-partner-memories}"
 MEMORY_REPO_URL="https://github.com/pandrux/ai-partner-memories.git"
 MEMORY_SKIP=""
 

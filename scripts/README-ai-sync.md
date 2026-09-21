@@ -1,12 +1,16 @@
 # ai-sync — git reconciliation across machines
 
 One script, three triggers, one shape of behavior: keep every machine's
-local repos under `D:\AI` aligned with `origin/main` so switching machines
-doesn't surprise you with out-of-cycle work.
+local repos under the AI root aligned with `origin/main` so switching
+machines doesn't surprise you with out-of-cycle work.
+
+The AI root is the grandparent of this repo (`C:\AI` on the laptop, `D:\AI`
+on the desktops). The script derives it from its own location, so nothing is
+hardcoded to a drive; pass `-BaseDir` to scan somewhere else.
 
 ## What it does
 
-For each git repository found under `D:\AI` that's on `main`:
+For each git repository found under the AI root that's on `main`:
 
 1. Auto-commits uncommitted work as `auto-sync: <hostname> <timestamp>`
 2. Fetches origin
@@ -21,7 +25,7 @@ Never force-pushes, never touches non-main branches, never rebases.
 From an elevated PowerShell on each machine:
 
 ```powershell
-cd D:\AI\Projects\AITerminalInterfaceConfigs\scripts
+cd <AI root>\Projects\AITerminalInterfaceConfigs\scripts   # e.g. C:\AI\Projects\...
 .\register-ai-sync-tasks.ps1
 ```
 
@@ -34,22 +38,16 @@ Output lands in `%LOCALAPPDATA%\ai-sync.log`.
 
 ## On-demand (before starting a Claude Code session)
 
-Add a shell function or alias so you can type `ai-sync` before a new
-session:
+Type `ai-sync` before a new session. Both bootstraps wire it up for you:
 
-**PowerShell profile** (`$PROFILE`):
+- **PowerShell**: `ai-sync` is defined in `shell/windows-additions.ps1`,
+  which `bootstrap-windows.ps1` dot-sources from your profile.
+- **Bash (inside WSL)**: `ai-sync` is defined in `shell/wsl-additions.sh`,
+  which `bootstrap-wsl.sh` sources from `.bashrc`. It runs the Windows-side
+  script through `powershell.exe`.
 
-```powershell
-function ai-sync {
-    & "D:\AI\Projects\AITerminalInterfaceConfigs\scripts\ai-sync.ps1" @args
-}
-```
-
-**Bash/zsh** (inside WSL):
-
-```bash
-alias ai-sync='pwsh.exe -NoProfile -File "/mnt/d/AI/Projects/AITerminalInterfaceConfigs/scripts/ai-sync.ps1"'
-```
+Both locate the script relative to the repo, so nothing depends on which
+drive the repo lives on.
 
 ## Uninstall
 

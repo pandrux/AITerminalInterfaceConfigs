@@ -8,10 +8,15 @@
 #   3. Checks for required CLI tools and reports status
 #   4. Optionally runs WSL bootstrap
 
+# Path convention: this repo lives at <AI root>\Projects\AITerminalInterfaceConfigs
+# and the private memory repo sits beside Projects\ at <AI root>\ai-partner-memories.
+# The AI root is derived from this script's location, so the same defaults work
+# whether the workspace is C:\AI, D:\AI, or anywhere else. Override with
+# -MemoryRepoPath to point somewhere different.
 param(
     [string]$WSLDistro = "Ubuntu",
     [switch]$SkipWSL,
-    [string]$MemoryRepoPath = "D:\AI\ai-partner-memories",
+    [string]$MemoryRepoPath = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\..\ai-partner-memories"),
     [string]$MemoryRepoUrl  = "https://github.com/pandrux/ai-partner-memories.git"
 )
 
@@ -21,6 +26,7 @@ $RepoRoot = $PSScriptRoot | Split-Path -Parent
 Write-Host ""
 Write-Host "=== Terminal Config Bootstrap ===" -ForegroundColor Cyan
 Write-Host "Repo: $RepoRoot"
+Write-Host "Memory repo: $MemoryRepoPath"
 Write-Host "WSL Distro: $WSLDistro"
 Write-Host ""
 
@@ -38,15 +44,29 @@ if (-not (Test-Path $WeztermConfigDir)) {
     Write-Host "  Created $WeztermConfigDir"
 }
 
+# Idempotent: leave a correct symlink alone. Replacing it on every run is
+# what breaks a running WezTerm -- its config watcher reloads the instant the
+# old link is moved away and reports "cannot find the file" -- and it piles
+# up .bak copies of the same link.
+$weztermLinked = $false
 if (Test-Path $WeztermConfigFile) {
-    $backup = "$WeztermConfigFile.bak-$(Get-Date -Format 'yyyyMMdd-HHmm')"
-    Move-Item $WeztermConfigFile $backup
-    Write-Host "  Backed up existing config to $backup"
+    $weztermItem = Get-Item $WeztermConfigFile -Force
+    $actualTarget = @($weztermItem.Target)[0]
+    if ($weztermItem.LinkType -eq "SymbolicLink" -and $actualTarget -eq $SourceConfig) {
+        Write-Host "  wezterm.lua already linked" -ForegroundColor Green
+        $weztermLinked = $true
+    } else {
+        $backup = "$WeztermConfigFile.bak-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+        Move-Item $WeztermConfigFile $backup
+        Write-Host "  Backed up existing config to $backup"
+    }
 }
 
-# Create a symlink so edits to the repo file are reflected immediately
-New-Item -ItemType SymbolicLink -Path $WeztermConfigFile -Target $SourceConfig | Out-Null
-Write-Host "  Linked: $WeztermConfigFile -> $SourceConfig" -ForegroundColor Green
+if (-not $weztermLinked) {
+    # Create a symlink so edits to the repo file are reflected immediately
+    New-Item -ItemType SymbolicLink -Path $WeztermConfigFile -Target $SourceConfig | Out-Null
+    Write-Host "  Linked: $WeztermConfigFile -> $SourceConfig" -ForegroundColor Green
+}
 
 # -----------------------------------------------------------------------------
 # 2. Check WezTerm is installed
@@ -124,14 +144,25 @@ if (-not (Test-Path $ClaudeDir)) {
     New-Item -ItemType Directory -Path $ClaudeDir | Out-Null
 }
 
+# Idempotent, same pattern as the wezterm.lua and skills links.
+$statuslineLinked = $false
 if (Test-Path $StatuslineTarget) {
-    $backup = "$StatuslineTarget.bak-$(Get-Date -Format 'yyyyMMdd-HHmm')"
-    Move-Item $StatuslineTarget $backup
-    Write-Host "  Backed up existing statusline.py to $backup"
+    $statuslineItem = Get-Item $StatuslineTarget -Force
+    $actualTarget = @($statuslineItem.Target)[0]
+    if ($statuslineItem.LinkType -eq "SymbolicLink" -and $actualTarget -eq $StatuslineSource) {
+        Write-Host "  statusline.py already linked" -ForegroundColor Green
+        $statuslineLinked = $true
+    } else {
+        $backup = "$StatuslineTarget.bak-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+        Move-Item $StatuslineTarget $backup
+        Write-Host "  Backed up existing statusline.py to $backup"
+    }
 }
 
-New-Item -ItemType SymbolicLink -Path $StatuslineTarget -Target $StatuslineSource | Out-Null
-Write-Host "  Linked: $StatuslineTarget -> $StatuslineSource" -ForegroundColor Green
+if (-not $statuslineLinked) {
+    New-Item -ItemType SymbolicLink -Path $StatuslineTarget -Target $StatuslineSource | Out-Null
+    Write-Host "  Linked: $StatuslineTarget -> $StatuslineSource" -ForegroundColor Green
+}
 
 # Skills: link the whole directory so skills added to the repo reach every
 # machine on git pull, without re-running bootstrap.
@@ -355,7 +386,7 @@ if (Register-SessionStartHook -Settings $settings `
     $settingsDirty = $true
 }
 
-# Work-context hook: auto-loads D:\AI\ai-partner-memories\work_context.md
+# Work-context hook: auto-loads <AI root>\ai-partner-memories\work_context.md
 # when the session's project CLAUDE.md declares Category: work or
 # Category: work-adjacent. No-op otherwise.
 if (Register-SessionStartHook -Settings $settings `

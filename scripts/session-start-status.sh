@@ -5,7 +5,9 @@
 # proactively offer a fast-forward pull when the repo is behind, instead of
 # discovering drift mid-edit and triggering a stash/replay.
 
-REPO_PATH="${REPO_PATH:-/mnt/d/AI/Projects/AITerminalInterfaceConfigs}"
+# Defaults to the repo this script lives in, so the hook keeps working
+# wherever the repo is cloned (/mnt/c/AI, /mnt/d/AI, ...).
+REPO_PATH="${REPO_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 # Hard dependency on jq for safe JSON output. Exit silent if missing rather
 # than blow up session start.

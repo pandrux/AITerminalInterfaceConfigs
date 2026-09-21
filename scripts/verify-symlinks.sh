@@ -6,12 +6,15 @@
 #
 # Usage:
 #   ./verify-symlinks.sh
-#   MEMORY_REPO_PATH=/mnt/d/AI/ai-partner-memories ./verify-symlinks.sh
+#   MEMORY_REPO_PATH=/mnt/e/elsewhere/ai-partner-memories ./verify-symlinks.sh
+#
+# MEMORY_REPO_PATH defaults to <AI root>/ai-partner-memories, where the AI root
+# is the grandparent of this repo (/mnt/c/AI, /mnt/d/AI, ...).
 
 set -u
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-/mnt/d/AI/ai-partner-memories}"
+MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-$(cd "$REPO_ROOT/../.." && pwd)/ai-partner-memories}"
 
 ok=0
 fail=0

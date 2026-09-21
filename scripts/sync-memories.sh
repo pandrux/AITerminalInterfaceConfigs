@@ -12,7 +12,9 @@
 
 set -u
 
-MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-/mnt/d/AI/ai-partner-memories}"
+# The memory repo sits beside Projects/ under the AI root this repo lives in
+# (/mnt/c/AI, /mnt/d/AI, ...); override with MEMORY_REPO_PATH.
+MEMORY_REPO_PATH="${MEMORY_REPO_PATH:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/ai-partner-memories}"
 LOG_FILE="${LOG_FILE:-$HOME/.claude/memory-sync.log}"
 
 log() {

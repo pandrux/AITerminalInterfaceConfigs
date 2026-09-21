@@ -58,6 +58,12 @@ function update-ai-win {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$RepoRoot\scripts\update-windows.ps1" @args
 }
 
+# Reconcile every repo under the AI root with origin/main.
+# See scripts/README-ai-sync.md.
+function ai-sync {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$RepoRoot\scripts\ai-sync.ps1" @args
+}
+
 # Instantiate the AI-to-AI mail structure in a project (default: cwd).
 # Usage: init-ai-mail [-Path <projectRoot>] [-Agents claude,codex,...]
 function init-ai-mail {

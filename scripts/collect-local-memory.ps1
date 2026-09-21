@@ -10,8 +10,10 @@
 #   .\collect-local-memory.ps1
 #   .\collect-local-memory.ps1 -MachineLabel "work-desktop"
 
+# The memory repo sits beside Projects\ under the AI root this repo lives in
+# (<AI root>\ai-partner-memories), so no drive letter is assumed.
 param(
-    [string]$MemoryRepoPath = "D:\AI\ai-partner-memories",
+    [string]$MemoryRepoPath = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\..\ai-partner-memories"),
     [string]$MemoryRepoUrl  = "https://github.com/pandrux/ai-partner-memories.git",
     [string]$MachineLabel   = $env:COMPUTERNAME
 )

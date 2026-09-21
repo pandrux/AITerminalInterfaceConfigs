@@ -9,8 +9,10 @@
 #
 # Logs to $env:USERPROFILE\.claude\memory-sync.log
 
+# The memory repo sits beside Projects\ under the AI root this repo lives in
+# (<AI root>\ai-partner-memories), so no drive letter is assumed.
 param(
-    [string]$MemoryRepoPath = "D:\AI\ai-partner-memories",
+    [string]$MemoryRepoPath = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\..\ai-partner-memories"),
     [string]$LogFile        = "$env:USERPROFILE\.claude\memory-sync.log"
 )
 

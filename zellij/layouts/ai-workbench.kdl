@@ -12,12 +12,14 @@
 // │                                     │
 // └─────────────────────────────────────┘
 //
-// Launch: zellij --layout ai-workbench
+// Launch: ai   (function in shell/wsl-additions.sh, or scripts/ai.sh)
+//   Both cd to the AI root first (the grandparent of this repo: /mnt/c/AI,
+//   /mnt/d/AI, ...) so panes open there. The layout sets no cwd of its own,
+//   so a bare `zellij --layout ai-workbench` opens panes wherever you run it.
 // Toggle broadcast: F9 (only syncs panes in the current tab)
 // Switch tabs: Ctrl+T then n/p (next/prev) or 1/2
 
 layout {
-    cwd "/mnt/d/AI"
     tab name="AI" focus=true {
         pane split_direction="vertical" {
             pane name="Claude" command="bash" {

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Reconciles local AI repositories with origin/main.
 
@@ -19,14 +19,15 @@
     starting a new Claude Code session) with identical behavior each time.
 
 .PARAMETER BaseDir
-    Root directory to scan for git repositories. Defaults to D:\AI.
+    Root directory to scan for git repositories. Defaults to the AI root this
+    repo lives under (its grandparent: C:\AI, D:\AI, ...).
 
 .PARAMETER WhatIf
     Report what would happen without making changes.
 
 .EXAMPLE
     .\ai-sync.ps1
-    Reconcile all repos under D:\AI.
+    Reconcile all repos under the AI root.
 
 .EXAMPLE
     .\ai-sync.ps1 -WhatIf
@@ -41,7 +42,7 @@
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$BaseDir = 'D:\AI'
+    [string]$BaseDir = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\..")
 )
 
 $ErrorActionPreference = 'Continue'
@@ -73,7 +74,7 @@ foreach ($gitDir in $gitDirs) {
         $branch = (& git rev-parse --abbrev-ref HEAD 2>$null).Trim()
         if ($branch -ne 'main') {
             Write-Host "  [skip] on branch '$branch', not 'main'"
-            $summary += "$repoName: skipped (branch=$branch)"
+            $summary += "${repoName}: skipped (branch=$branch)"
             continue
         }
 
@@ -98,7 +99,7 @@ foreach ($gitDir in $gitDirs) {
         $remoteHead = & git rev-parse --verify --quiet origin/main 2>$null
         if (-not $remoteHead) {
             Write-Warning "  [skip] no origin/main found"
-            $summary += "$repoName: skipped (no origin/main)"
+            $summary += "${repoName}: skipped (no origin/main)"
             continue
         }
 
@@ -108,24 +109,24 @@ foreach ($gitDir in $gitDirs) {
 
         if ($local -eq $remote) {
             Write-Host "  [sync] already in sync"
-            $summary += "$repoName: in sync"
+            $summary += "${repoName}: in sync"
         } elseif ($local -eq $base) {
             # behind — fast-forward
             if ($PSCmdlet.ShouldProcess($repoName, "Fast-forward from origin/main")) {
                 Invoke-GitQuiet @('merge','--ff-only','origin/main') | Out-Null
                 Write-Host "  [pull] fast-forwarded"
-                $summary += "$repoName: pulled"
+                $summary += "${repoName}: pulled"
             }
         } elseif ($remote -eq $base) {
             # ahead — push
             if ($PSCmdlet.ShouldProcess($repoName, "Push to origin/main")) {
                 Invoke-GitQuiet @('push','origin','main') | Out-Null
                 Write-Host "  [push] pushed local commits"
-                $summary += "$repoName: pushed"
+                $summary += "${repoName}: pushed"
             }
         } else {
             Write-Warning "  [WARN] diverged from origin/main — manual resolution needed"
-            $summary += "$repoName: DIVERGED (manual)"
+            $summary += "${repoName}: DIVERGED (manual)"
             $issues++
         }
     } finally {

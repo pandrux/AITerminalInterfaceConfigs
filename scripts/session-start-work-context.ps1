@@ -13,8 +13,10 @@
 # match regex is line-anchored so docs examples in other files also cannot
 # trigger a false match.
 
+# The memory repo sits beside Projects\ under the AI root this repo lives in
+# (<AI root>\ai-partner-memories), so no drive letter is assumed.
 param(
-    [string]$MemoryRepoPath = "D:\AI\ai-partner-memories"
+    [string]$MemoryRepoPath = [IO.Path]::GetFullPath("$PSScriptRoot\..\..\..\ai-partner-memories")
 )
 
 # PS 5.1 defaults stdout to the OEM code page, which transliterates em-dashes

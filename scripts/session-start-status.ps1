@@ -2,8 +2,10 @@
 # Fetches origin and reports branch/drift status as additionalContext so
 # Claude can proactively offer a fast-forward pull when the repo is behind.
 
+# Defaults to the repo this script lives in, so the hook keeps working
+# wherever the repo is cloned (C:\AI, D:\AI, ...).
 param(
-    [string]$RepoPath = "D:\AI\Projects\AITerminalInterfaceConfigs"
+    [string]$RepoPath = (Split-Path -Parent $PSScriptRoot)
 )
 
 function Emit-Context($text) {
