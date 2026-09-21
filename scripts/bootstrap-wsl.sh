@@ -96,7 +96,16 @@ if [ -d "$AI_VENV" ] && "$AI_VENV/bin/python3" -c "import pptx" &>/dev/null 2>&1
     echo "  ✓ Python venv + python-pptx already installed"
 else
     echo "  Setting up Python venv with python-pptx..."
-    sudo apt-get install -y python3-venv python3.12-venv -qq
+    # Ubuntu splits venv support per interpreter (python3.12-venv on 24.04,
+    # python3.14-venv on 26.04, ...). Derive the name from the python3 that
+    # will build the venv instead of pinning a release; fall back to the
+    # python3-venv metapackage alone if no versioned package is published.
+    PY_VENV_PKG="python$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')-venv"
+    if apt-cache show "$PY_VENV_PKG" &>/dev/null; then
+        sudo apt-get install -y python3-venv "$PY_VENV_PKG" -qq
+    else
+        sudo apt-get install -y python3-venv -qq
+    fi
     python3 -m venv "$AI_VENV"
     "$AI_VENV/bin/pip" install python-pptx
     echo "  ✓ python-pptx installed in $AI_VENV"
