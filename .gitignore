@@ -20,3 +20,7 @@ node_modules/
 # ~/.claude/skills/synced/, which resolves into this repo once bootstrap
 # symlinks ~/.claude/skills -> skills/. Per-machine, not ours to version.
 skills/synced/
+
+# understand-anything plugin output (/understand knowledge graph cache).
+# Regenerated on each run; per-machine and quickly stale.
+.ua/
