@@ -115,7 +115,7 @@ foreach ($tool in $tools) {
     } elseif ($autoInstall -contains $tool.Name -and $tool.Install -match '^winget install (.+)$') {
         $wingetId = $Matches[1]
         Write-Host "  [AUTO] Installing $($tool.Name) via winget ($wingetId)..." -ForegroundColor Yellow
-        winget install --id $wingetId --silent --accept-source-agreements --accept-package-agreements
+        winget install --id $wingetId --source winget --silent --accept-source-agreements --accept-package-agreements
         $wingetExit = $LASTEXITCODE
         # -1978335189 = 0x8A15002B = APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE
         # (already installed / no newer version). Not a real failure.
