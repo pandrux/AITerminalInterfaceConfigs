@@ -409,6 +409,60 @@ function Register-UserPromptSubmitHook {
     return $true
 }
 
+# Retired hooks. When a feature is removed from the repo, its hook scripts go
+# with it, but settings.json on machines bootstrapped while the feature was
+# live keeps pointing at them. Claude Code then reports a non-blocking hook
+# error on every session (SessionStart) or silently fails (SessionEnd). This
+# drops any entry under $Event whose command names one of the retired script
+# leaves, so re-running the bootstrap migrates old installs.
+function Remove-RetiredHooks {
+    param(
+        $Settings,
+        [string]$Event,
+        [string[]]$Retired
+    )
+
+    if (-not ($Settings.PSObject.Properties.Name -contains 'hooks') -or -not $Settings.hooks) { return $false }
+    if (-not ($Settings.hooks.PSObject.Properties.Name -contains $Event) -or -not $Settings.hooks.$Event) { return $false }
+
+    $changed = $false
+    $kept = @()
+    foreach ($entry in @($Settings.hooks.$Event)) {
+        $isRetired = $false
+        foreach ($h in @($entry.hooks)) {
+            foreach ($old in $Retired) {
+                if ($h.command -and ($h.command -match [regex]::Escape($old))) { $isRetired = $true }
+            }
+        }
+        if ($isRetired) {
+            Write-Host "  Removed retired $Event hook: $($entry.hooks[0].command)" -ForegroundColor Yellow
+            $changed = $true
+        } else {
+            $kept += $entry
+        }
+    }
+
+    if ($changed) {
+        if ($kept.Count -gt 0) {
+            $Settings.hooks | Add-Member -NotePropertyName $Event -NotePropertyValue $kept -Force
+        } else {
+            $Settings.hooks.PSObject.Properties.Remove($Event)
+        }
+    }
+    return $changed
+}
+
+# Memory encryption tooling (scripts/encryption/, live 2026-05-07 to
+# 2026-09-21, rolled back in 9daa53a) registered a decrypt hook at session
+# start and an encrypt hook at session end. The scripts are gone; drop the
+# entries wherever a bootstrap from that window left them.
+if (Remove-RetiredHooks -Settings $settings -Event 'SessionStart' -Retired @('decrypt-memory.ps1')) {
+    $settingsDirty = $true
+}
+if (Remove-RetiredHooks -Settings $settings -Event 'SessionEnd' -Retired @('encrypt-memory.ps1')) {
+    $settingsDirty = $true
+}
+
 # Drift-check hook: fetches origin on this repo so Claude can offer a
 # fast-forward pull at session start instead of running into mid-edit
 # stash/replay from weekend drift.
