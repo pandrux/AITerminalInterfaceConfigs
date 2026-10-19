@@ -147,6 +147,30 @@ compare-ai "what is the bug here?" < error_log.txt
 broadcast-ai "analyze this stack trace"
 ```
 
+## AI Pane Tint
+
+The `claude`, `codex`, and `gemini` wrappers (in both `windows-additions.ps1`
+and `wsl-additions.sh`) shift the WezTerm pane background while the CLI runs
+and restore it on exit. Codex is deep purple, Gemini dark navy. Claude's tint
+follows the directory it was launched from, so a glance at the pane says which
+space you are working in:
+
+| Launched from | Tint |
+|---|---|
+| `<AI root>\ProdEvents\` | deep red `#370617` — reserved: a red pane always means production |
+| `<AI root>\LabEvents\` | dark teal `#0b3a3a` |
+| `<AI root>\Projects\` | dark green `#0b2e1a` |
+| anywhere else | slate `#2f2f2f` |
+
+`<AI root>` is the grandparent of this repo (`D:\AI` on the desktops, `C:\AI`
+on the laptop), derived at load time like the other scripts, so no drive letter
+is assumed. Subfolders inherit their zone's color. The mapping lives in
+`$AiZoneColors` (PowerShell) and `_ai_zone_color` (bash); change both together.
+`untint` resets a pane left tinted by a killed session.
+
+Tests: `pwsh -NoProfile -File scripts\tests\ai-tint.Tests.ps1` (Windows) and
+`bash scripts/tests/ai-tint.test.sh` (inside WSL).
+
 ## File Structure
 
 ```

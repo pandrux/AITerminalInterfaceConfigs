@@ -9,7 +9,9 @@ $RepoRoot = Split-Path -Parent $WindowsAdditionsDir
 # -----------------------------------------------------------------------------
 # AI pane tinting — Windows counterpart of the wrappers in wsl-additions.sh
 # Shifts the WezTerm pane background while an AI CLI runs, resets on exit:
-#   Claude → dark wine   Codex → deep purple   Gemini → dark navy
+#   Codex → deep purple   Gemini → dark navy
+#   Claude → by launch directory (see $AiZoneColors). Deep red is reserved
+#   for <AI root>\ProdEvents so a red pane always means production work.
 # OSC 11 sets the pane background. ConPTY (conhost) swallows OSC 111
 # (reset-background) before it reaches WezTerm, so "reset" re-sets the
 # scheme's own background via OSC 11 instead. Only tints interactive
@@ -18,6 +20,31 @@ $RepoRoot = Split-Path -Parent $WindowsAdditionsDir
 
 # Must match config.color_scheme in wezterm/wezterm.lua (AdventureTime background)
 $AiTintResetColor = '#1f1d45'
+
+# Claude's tint follows the workspace it was launched from. Zones are the
+# event/project folders under the AI root this repo lives in (D:\AI on the
+# desktops, C:\AI on the laptop), so no drive letter is assumed. A zone matches
+# its root or anything beneath it (case-insensitive, either slash style). Keep
+# in sync with _ai_zone_color in wsl-additions.sh.
+$AiRoot = Split-Path -Parent (Split-Path -Parent $RepoRoot)
+$AiZoneColors = [ordered]@{
+    'ProdEvents' = '#370617'   # deep red   - production incidents (red = prod, only)
+    'LabEvents'  = '#0b3a3a'   # dark teal  - lab investigations
+    'Projects'   = '#0b2e1a'   # dark green - ongoing initiatives
+}
+$AiZoneFallbackColor = '#2f2f2f'   # slate      - anywhere else
+
+function _Get-AiZoneColor {
+    param([string]$Path)
+    $p = ($Path -replace '/', '\').TrimEnd('\')
+    foreach ($zone in $AiZoneColors.Keys) {
+        $root = Join-Path $AiRoot $zone
+        if ($p -eq $root -or $p.StartsWith("$root\", [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $AiZoneColors[$zone]
+        }
+    }
+    return $AiZoneFallbackColor
+}
 
 function _Invoke-AiTinted {
     param(
@@ -43,7 +70,7 @@ function _Invoke-AiTinted {
     }
 }
 
-function claude { _Invoke-AiTinted -Color '#370617' -Name 'claude' -CliArgs $args }
+function claude { _Invoke-AiTinted -Color (_Get-AiZoneColor $PWD.ProviderPath) -Name 'claude' -CliArgs $args }
 function codex  { _Invoke-AiTinted -Color '#240046' -Name 'codex'  -CliArgs $args }
 function gemini { _Invoke-AiTinted -Color '#001524' -Name 'gemini' -CliArgs $args }
 
